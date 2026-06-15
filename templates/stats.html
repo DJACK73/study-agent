@@ -1,0 +1,128 @@
+{% extends "base.html" %}
+{% block title %}Statistiques — Study Agent{% endblock %}
+{% block topbar_title %}Statistiques{% endblock %}
+{% block topbar_sub %}Progression par sujet{% endblock %}
+
+{% block extra_style %}
+.subject-card {
+  background: var(--bg2);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-lg);
+  padding: 22px 24px;
+  transition: all var(--transition);
+}
+.subject-card:hover { border-color: var(--accent); }
+.subject-top {
+  display: flex;
+  align-items: flex-start;
+  gap: 12px;
+  margin-bottom: 14px;
+}
+.subject-title { font-size: 15px; font-weight: 600; flex: 1; }
+.subject-pct-big {
+  font-size: 28px;
+  font-weight: 700;
+  font-family: 'JetBrains Mono', monospace;
+}
+.subject-meta {
+  display: flex;
+  gap: 16px;
+  margin-top: 12px;
+  font-size: 12px;
+  color: var(--text3);
+}
+.subject-meta span { display: flex; align-items: center; gap: 4px; }
+{% endblock %}
+
+{% block content %}
+
+<!-- Stats globales -->
+<div class="grid-4" style="margin-bottom:32px;">
+  <div class="card" style="border-top:3px solid var(--accent);">
+    <div class="card-title">Total cartes</div>
+    <div class="card-value">{{ global_stats.total_cards }}</div>
+    <div class="card-sub">dans ta bibliothèque</div>
+  </div>
+  <div class="card" style="border-top:3px solid var(--red);">
+    <div class="card-title">À réviser</div>
+    <div class="card-value">{{ global_stats.due_today }}</div>
+    <div class="card-sub">cartes dues aujourd'hui</div>
+  </div>
+  <div class="card" style="border-top:3px solid var(--green);">
+    <div class="card-title">Sujets</div>
+    <div class="card-value">{{ sujets|length }}</div>
+    <div class="card-sub">sujets étudiés</div>
+  </div>
+  <div class="card" style="border-top:3px solid var(--yellow);">
+    <div class="card-title">Maîtrise moy.</div>
+    <div class="card-value">
+      {% if sujets %}
+        {{ (sujets | map(attribute='score_pct') | sum / sujets|length) | round | int }}%
+      {% else %}0%{% endif %}
+    </div>
+    <div class="card-sub">sur tous les sujets</div>
+  </div>
+</div>
+
+<!-- Sujets -->
+{% if sujets %}
+<div style="font-size:16px;font-weight:700;margin-bottom:16px;">
+  📚 Détail par sujet
+</div>
+<div style="display:flex;flex-direction:column;gap:14px;">
+  {% for s in sujets %}
+  <div class="subject-card">
+    <div class="subject-top">
+      <div>
+        <div class="subject-title">{{ s.subject }}</div>
+        <div class="subject-meta">
+          <span>🃏 {{ s.maitrisees }}/{{ s.total }} cartes maîtrisées</span>
+          <span>⏱️ Intervalle moy. {{ s.intervalle_moyen }}j</span>
+          {% if s.dues > 0 %}
+          <span style="color:var(--red);">⚠️ {{ s.dues }} due(s)</span>
+          {% else %}
+          <span style="color:var(--green);">✓ À jour</span>
+          {% endif %}
+        </div>
+      </div>
+      <div class="subject-pct-big"
+        style="color:
+          {% if s.score_pct >= 80 %}var(--green)
+          {% elif s.score_pct >= 50 %}var(--yellow)
+          {% else %}var(--red){% endif %}">
+        {{ s.score_pct }}%
+      </div>
+    </div>
+    <div class="progress-bar" style="height:8px;">
+      <div class="progress-fill
+        {% if s.score_pct >= 80 %}green
+        {% elif s.score_pct >= 50 %}yellow
+        {% else %}red{% endif %}"
+        style="width:{{ s.score_pct }}%"></div>
+    </div>
+    <div style="display:flex;justify-content:space-between;margin-top:8px;font-size:11px;color:var(--text3);">
+      <span>
+        {% if s.score_pct >= 80 %}✅ Maîtrisé
+        {% elif s.score_pct >= 50 %}📈 En progrès
+        {% else %}🔁 À retravailler{% endif %}
+      </span>
+      {% if s.dues > 0 %}
+      <a href="/revision" style="color:var(--accent2);font-weight:600;">Réviser maintenant →</a>
+      {% endif %}
+    </div>
+  </div>
+  {% endfor %}
+</div>
+
+{% else %}
+<div style="text-align:center;padding:80px 32px;color:var(--text3);">
+  <div style="font-size:48px;margin-bottom:16px;">📊</div>
+  <div style="font-size:18px;font-weight:600;margin-bottom:8px;">Aucune donnée encore</div>
+  <div style="font-size:14px;margin-bottom:24px;">
+    Fais une session de flashcards pour voir tes statistiques ici.
+  </div>
+  <a href="/apprendre" class="btn btn-primary">Commencer à apprendre →</a>
+</div>
+{% endif %}
+
+{% endblock %}

@@ -1,0 +1,211 @@
+{% extends "base.html" %}
+{% block title %}Dashboard — Study Agent{% endblock %}
+{% block topbar_title %}Dashboard{% endblock %}
+{% block topbar_sub %}Vue d'ensemble{% endblock %}
+
+{% block extra_style %}
+.stat-card {
+  background: var(--bg2);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-lg);
+  padding: 24px;
+  position: relative;
+  overflow: hidden;
+  transition: all var(--transition);
+}
+.stat-card:hover { border-color: var(--accent); transform: translateY(-2px); }
+.stat-card::before {
+  content: '';
+  position: absolute;
+  top: 0; left: 0; right: 0;
+  height: 3px;
+}
+.stat-card.purple::before { background: linear-gradient(90deg, var(--accent), var(--accent2)); }
+.stat-card.green::before  { background: linear-gradient(90deg, #2eb870, var(--green)); }
+.stat-card.yellow::before { background: linear-gradient(90deg, #e6a800, var(--yellow)); }
+.stat-card.red::before    { background: linear-gradient(90deg, #e04444, var(--red)); }
+.stat-icon { font-size: 28px; margin-bottom: 12px; }
+.stat-number {
+  font-size: 38px;
+  font-weight: 700;
+  font-family: 'JetBrains Mono', monospace;
+  line-height: 1;
+  margin-bottom: 6px;
+}
+.stat-label { font-size: 13px; color: var(--text2); font-weight: 500; }
+
+.subject-row {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  padding: 14px 0;
+  border-bottom: 1px solid var(--border);
+}
+.subject-row:last-child { border-bottom: none; }
+.subject-name { font-size: 14px; font-weight: 500; width: 200px; flex-shrink: 0; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.subject-bar  { flex: 1; }
+.subject-pct  { font-size: 13px; font-weight: 700; font-family: 'JetBrains Mono', monospace; width: 42px; text-align: right; flex-shrink: 0; }
+.subject-dues { font-size: 11px; width: 60px; text-align: right; flex-shrink: 0; }
+
+.quick-action {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 6px;
+  padding: 20px;
+  background: var(--bg2);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-lg);
+  text-decoration: none;
+  transition: all var(--transition);
+  cursor: pointer;
+}
+.quick-action:hover {
+  border-color: var(--accent);
+  background: rgba(108,99,255,.06);
+  transform: translateY(-2px);
+}
+.quick-action .qa-icon { font-size: 24px; }
+.quick-action .qa-title { font-size: 14px; font-weight: 600; color: var(--text); }
+.quick-action .qa-sub   { font-size: 12px; color: var(--text3); }
+
+.section-title {
+  font-size: 16px;
+  font-weight: 700;
+  margin-bottom: 16px;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+.section-title span { color: var(--text3); font-size: 13px; font-weight: 400; }
+{% endblock %}
+
+{% block content %}
+
+<!-- Stat cards -->
+<div class="grid-4" style="margin-bottom:32px;">
+  <div class="stat-card purple">
+    <div class="stat-icon">🃏</div>
+    <div class="stat-number">{{ stats.total_cards }}</div>
+    <div class="stat-label">Cartes totales</div>
+  </div>
+  <div class="stat-card red">
+    <div class="stat-icon">🔁</div>
+    <div class="stat-number">{{ stats.due_today }}</div>
+    <div class="stat-label">À réviser aujourd'hui</div>
+  </div>
+  <div class="stat-card green">
+    <div class="stat-icon">📚</div>
+    <div class="stat-number">{{ sujets|length }}</div>
+    <div class="stat-label">Sujets étudiés</div>
+  </div>
+  <div class="stat-card yellow">
+    <div class="stat-icon">🎯</div>
+    <div class="stat-number">
+      {% if sujets %}
+        {{ (sujets | map(attribute='score_pct') | sum / sujets|length) | round | int }}%
+      {% else %}
+        0%
+      {% endif %}
+    </div>
+    <div class="stat-label">Maîtrise moyenne</div>
+  </div>
+</div>
+
+<div class="grid-2" style="margin-bottom:32px;align-items:start;">
+
+  <!-- Maîtrise par sujet -->
+  <div class="card">
+    <div class="section-title">
+      📈 Maîtrise par sujet
+      <span>{{ sujets|length }} sujet(s)</span>
+    </div>
+    {% if sujets %}
+      {% for s in sujets %}
+        <div class="subject-row">
+          <div class="subject-name" title="{{ s.subject }}">{{ s.subject }}</div>
+          <div class="subject-bar">
+            <div class="progress-bar">
+              <div class="progress-fill
+                {% if s.score_pct >= 80 %}green
+                {% elif s.score_pct >= 50 %}yellow
+                {% else %}red{% endif %}"
+                style="width:{{ s.score_pct }}%"></div>
+            </div>
+          </div>
+          <div class="subject-pct"
+            style="color:
+              {% if s.score_pct >= 80 %}var(--green)
+              {% elif s.score_pct >= 50 %}var(--yellow)
+              {% else %}var(--red){% endif %}">
+            {{ s.score_pct }}%
+          </div>
+          <div class="subject-dues">
+            {% if s.dues > 0 %}
+              <span class="badge badge-red">{{ s.dues }} due(s)</span>
+            {% else %}
+              <span class="badge badge-green">✓</span>
+            {% endif %}
+          </div>
+        </div>
+      {% endfor %}
+    {% else %}
+      <div style="color:var(--text3);font-size:13.5px;padding:16px 0;text-align:center;">
+        Aucun sujet encore. <a href="/apprendre" style="color:var(--accent2);">Commence à apprendre →</a>
+      </div>
+    {% endif %}
+  </div>
+
+  <!-- Actions rapides -->
+  <div style="display:flex;flex-direction:column;gap:16px;">
+    <div class="section-title">⚡ Actions rapides</div>
+    <div class="grid-2" style="gap:12px;">
+      <a href="/apprendre" class="quick-action">
+        <div class="qa-icon">✨</div>
+        <div class="qa-title">Nouvelle session</div>
+        <div class="qa-sub">11 modes disponibles</div>
+      </a>
+      <a href="/revision" class="quick-action">
+        <div class="qa-icon">🔁</div>
+        <div class="qa-title">Réviser</div>
+        <div class="qa-sub">
+          {% if stats.due_today > 0 %}
+            {{ stats.due_today }} carte(s) en attente
+          {% else %}
+            À jour — reviens demain
+          {% endif %}
+        </div>
+      </a>
+      <a href="/stats" class="quick-action">
+        <div class="qa-icon">📊</div>
+        <div class="qa-title">Statistiques</div>
+        <div class="qa-sub">Voir ma progression</div>
+      </a>
+      <a href="/apprendre?mode=9" class="quick-action">
+        <div class="qa-icon">🎓</div>
+        <div class="qa-title">Mode examen</div>
+        <div class="qa-sub">Tester ses connaissances</div>
+      </a>
+    </div>
+
+    {% if stats.due_today > 0 %}
+    <!-- Alerte révision -->
+    <div style="background:rgba(255,107,107,.08);border:1px solid rgba(255,107,107,.25);border-radius:var(--radius-lg);padding:20px;display:flex;align-items:center;gap:16px;">
+      <span style="font-size:28px;">⏰</span>
+      <div>
+        <div style="font-size:14px;font-weight:600;color:var(--red);margin-bottom:4px;">
+          {{ stats.due_today }} carte(s) à réviser aujourd'hui
+        </div>
+        <div style="font-size:12.5px;color:var(--text2);">
+          Ne laisse pas la répétition espacée s'accumuler.
+        </div>
+        <a href="/revision" class="btn btn-danger btn-sm" style="margin-top:12px;">
+          Réviser maintenant →
+        </a>
+      </div>
+    </div>
+    {% endif %}
+  </div>
+</div>
+
+{% endblock %}

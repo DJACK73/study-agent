@@ -1,0 +1,3 @@
+@echo off
+set GEMINI_API_KEY=VOTRE_CLE_ICI
+python app.py

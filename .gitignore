@@ -1,0 +1,7 @@
+lance.bat
+data/
+outputs/
+inputs/
+__pycache__/
+*.pyc
+*.db

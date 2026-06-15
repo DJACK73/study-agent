@@ -1,0 +1,528 @@
+{% extends "base.html" %}
+{% block title %}Révision — Study Agent{% endblock %}
+{% block topbar_title %}Révision espacée{% endblock %}
+{% block topbar_sub %}Algorithme SM-2{% endblock %}
+
+{% block extra_style %}
+.rev-card {
+  background: var(--bg2);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-lg);
+  overflow: hidden;
+  max-width: 680px;
+  margin: 0 auto;
+}
+.rev-header {
+  padding: 20px 28px;
+  background: var(--bg3);
+  border-bottom: 1px solid var(--border);
+  display: flex;
+  align-items: center;
+  gap: 16px;
+}
+.rev-subject {
+  font-size: 12px;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: .8px;
+  color: var(--accent2);
+}
+.rev-body { padding: 40px 36px; }
+.rev-question {
+  font-size: 20px;
+  font-weight: 600;
+  line-height: 1.5;
+  margin-bottom: 32px;
+  color: var(--text);
+}
+.rev-answer {
+  display: none;
+  background: linear-gradient(135deg,rgba(108,99,255,.08),rgba(108,99,255,.03));
+  border: 1px solid rgba(108,99,255,.2);
+  border-radius: var(--radius-lg);
+  padding: 24px;
+  margin-bottom: 28px;
+  font-size: 15px;
+  line-height: 1.7;
+  animation: fadeIn .3s ease;
+}
+.score-buttons {
+  display: none;
+  flex-direction: column;
+  gap: 10px;
+  animation: fadeIn .3s ease;
+}
+.score-grid {
+  display: grid;
+  grid-template-columns: repeat(3,1fr);
+  gap: 8px;
+}
+.score-btn {
+  padding: 12px 8px;
+  border-radius: var(--radius);
+  border: 1px solid var(--border);
+  background: var(--bg3);
+  color: var(--text);
+  cursor: pointer;
+  font-family: 'Inter', sans-serif;
+  font-size: 12.5px;
+  font-weight: 500;
+  transition: all var(--transition);
+  text-align: center;
+  line-height: 1.3;
+}
+.score-btn:hover { border-color: var(--accent); background: rgba(108,99,255,.1); }
+.score-btn .score-num {
+  display: block;
+  font-size: 22px;
+  font-weight: 700;
+  font-family: 'JetBrains Mono', monospace;
+  margin-bottom: 4px;
+}
+.score-btn.s0 .score-num { color: var(--red); }
+.score-btn.s1 .score-num, .score-btn.s2 .score-num { color: var(--yellow); }
+.score-btn.s3 .score-num { color: var(--text2); }
+.score-btn.s4 .score-num, .score-btn.s5 .score-num { color: var(--green); }
+.rev-empty {
+  text-align: center;
+  padding: 80px 32px;
+  color: var(--text3);
+}
+.session-summary {
+  display: none;
+  text-align: center;
+  padding: 48px 32px;
+}
+.tab-bar {
+  display: flex;
+  gap: 8px;
+  margin-bottom: 24px;
+  border-bottom: 1px solid var(--border);
+  padding-bottom: 0;
+}
+.tab-btn {
+  padding: 10px 20px;
+  border: none;
+  background: none;
+  color: var(--text3);
+  font-family: 'Inter', sans-serif;
+  font-size: 14px;
+  font-weight: 500;
+  cursor: pointer;
+  border-bottom: 2px solid transparent;
+  margin-bottom: -1px;
+  transition: all var(--transition);
+}
+.tab-btn.active {
+  color: var(--accent);
+  border-bottom-color: var(--accent);
+}
+.tab-pane { display: none; }
+.tab-pane.active { display: block; }
+.import-zone {
+  background: var(--bg2);
+  border: 2px dashed var(--border);
+  border-radius: var(--radius-lg);
+  padding: 32px;
+  margin-bottom: 20px;
+}
+.import-zone textarea {
+  width: 100%;
+  min-height: 180px;
+  background: var(--bg3);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  color: var(--text);
+  font-family: 'Inter', sans-serif;
+  font-size: 14px;
+  line-height: 1.6;
+  padding: 16px;
+  resize: vertical;
+  box-sizing: border-box;
+}
+.import-zone textarea:focus { outline: none; border-color: var(--accent); }
+.import-result { display: none; margin-top: 24px; }
+{% endblock %}
+
+{% block content %}
+<div style="max-width:680px;margin:0 auto;">
+
+  <!-- Onglets -->
+  <div class="tab-bar">
+    <button class="tab-btn active" onclick="switchTab('revision')">🔁 Révision du jour</button>
+    <button class="tab-btn" onclick="switchTab('import')">📂 Mon cours</button>
+  </div>
+
+  <!-- Onglet Import cours -->
+  <div class="tab-pane" id="tab-import">
+    <div class="import-zone">
+      <div style="font-size:15px;font-weight:600;margin-bottom:6px;">Importer ton cours</div>
+      <div style="font-size:13px;color:var(--text3);margin-bottom:16px;">
+        Texte, PDF ou image — Gemini génère les flashcards et les enregistre dans la révision espacée.
+      </div>
+
+      <!-- Sélecteur de source -->
+      <div style="display:flex;gap:8px;margin-bottom:16px;">
+        <button class="tab-btn active" id="src-btn-texte" onclick="switchSource('texte')" style="font-size:13px;padding:8px 16px;">✏️ Texte</button>
+        <button class="tab-btn" id="src-btn-fichier" onclick="switchSource('fichier')" style="font-size:13px;padding:8px 16px;">📎 PDF / Image</button>
+      </div>
+
+      <!-- Source texte -->
+      <div id="src-texte">
+        <textarea id="cours-input" placeholder="Colle ton cours, tes notes, un chapitre..."></textarea>
+      </div>
+
+      <!-- Source fichier -->
+      <div id="src-fichier" style="display:none;">
+        <label id="drop-zone" style="display:flex;flex-direction:column;align-items:center;justify-content:center;gap:10px;border:2px dashed var(--border);border-radius:var(--radius);padding:40px;cursor:pointer;transition:border-color var(--transition);"
+               onmouseover="this.style.borderColor='var(--accent)'" onmouseout="this.style.borderColor='var(--border)'">
+          <span style="font-size:36px;">📎</span>
+          <span style="font-size:14px;color:var(--text2);">Clique ou glisse un PDF ou une image</span>
+          <span style="font-size:12px;color:var(--text3);">PDF, JPG, PNG, WEBP</span>
+          <input type="file" id="cours-file" accept=".pdf,.jpg,.jpeg,.png,.webp" style="display:none;" onchange="previewFichier(this)">
+        </label>
+        <div id="file-preview" style="display:none;margin-top:12px;padding:12px 16px;background:var(--bg3);border:1px solid var(--border);border-radius:var(--radius);font-size:13px;color:var(--text2);display:flex;align-items:center;gap:10px;">
+          <span id="file-icon">📄</span>
+          <span id="file-name"></span>
+          <button onclick="clearFichier()" style="margin-left:auto;background:none;border:none;color:var(--text3);cursor:pointer;font-size:16px;">✕</button>
+        </div>
+      </div>
+
+      <div style="display:flex;gap:12px;align-items:center;margin-top:16px;flex-wrap:wrap;">
+        <input type="text" id="cours-sujet" placeholder="Nom du sujet (ex: Pharmacologie)"
+               style="flex:1;min-width:180px;background:var(--bg3);border:1px solid var(--border);border-radius:var(--radius);color:var(--text);font-family:'Inter',sans-serif;font-size:14px;padding:10px 14px;">
+        <select id="cours-nb" style="background:var(--bg3);border:1px solid var(--border);border-radius:var(--radius);color:var(--text);font-family:'Inter',sans-serif;font-size:14px;padding:10px 14px;">
+          <option value="5">5 cartes</option>
+          <option value="8">8 cartes</option>
+          <option value="10" selected>10 cartes</option>
+          <option value="15">15 cartes</option>
+          <option value="20">20 cartes</option>
+        </select>
+        <button class="btn btn-primary" onclick="importerCours()" id="btn-importer">✨ Générer</button>
+      </div>
+    </div>
+    <div class="import-result" id="import-result">
+      <div style="font-size:14px;font-weight:600;margin-bottom:14px;color:var(--text2);" id="import-titre"></div>
+      <div id="import-cards-list"></div>
+      <div style="display:flex;gap:12px;margin-top:20px;flex-wrap:wrap;">
+        <button class="btn btn-secondary" onclick="location.reload()">🔁 Réviser maintenant</button>
+        <button class="btn btn-secondary" onclick="resetImport()">➕ Autre cours</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Onglet Révision -->
+  <div class="tab-pane active" id="tab-revision">
+
+  <!-- Barre de progression globale -->
+  <div style="display:flex;align-items:center;gap:16px;margin-bottom:24px;">
+    <span style="font-size:13px;color:var(--text3);">Progression</span>
+    <div class="progress-bar" style="flex:1;">
+      <div class="progress-fill" id="rev-progress" style="width:0%"></div>
+    </div>
+    <span id="rev-counter" style="font-size:13px;font-family:'JetBrains Mono',monospace;color:var(--text2);">
+      0 / {{ dues|length }}
+    </span>
+  </div>
+
+  {% if dues %}
+  <!-- Carte de révision -->
+  <div class="rev-card" id="rev-card">
+    <div class="rev-header">
+      <div style="flex:1;">
+        <div class="rev-subject" id="rev-subject">—</div>
+        <div style="font-size:12px;color:var(--text3);margin-top:2px;" id="rev-interval">—</div>
+      </div>
+      <div style="font-size:11px;color:var(--text3);font-family:'JetBrains Mono',monospace;" id="rev-idx">0/{{ dues|length }}</div>
+    </div>
+    <div class="rev-body">
+      <div class="rev-question" id="rev-question">Chargement...</div>
+      <button class="btn btn-secondary" id="btn-voir" onclick="voirReponse()" style="width:100%;justify-content:center;margin-bottom:20px;">
+        👁️ Voir la réponse
+      </button>
+      <div class="rev-answer" id="rev-answer"></div>
+      <div class="score-buttons" id="score-buttons">
+        <div style="font-size:12px;color:var(--text3);text-align:center;margin-bottom:4px;">
+          Comment tu as répondu ?
+        </div>
+        <div class="score-grid">
+          <button class="score-btn s0" onclick="evaluer(0)">
+            <span class="score-num">0</span>Blackout
+          </button>
+          <button class="score-btn s1" onclick="evaluer(1)">
+            <span class="score-num">1</span>Très vague
+          </button>
+          <button class="score-btn s2" onclick="evaluer(2)">
+            <span class="score-num">2</span>Faux mais proche
+          </button>
+          <button class="score-btn s3" onclick="evaluer(3)">
+            <span class="score-num">3</span>Correct difficile
+          </button>
+          <button class="score-btn s4" onclick="evaluer(4)">
+            <span class="score-num">4</span>Correct
+          </button>
+          <button class="score-btn s5" onclick="evaluer(5)">
+            <span class="score-num">5</span>Parfait
+          </button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Résumé de session (affiché à la fin) -->
+  <div class="rev-card session-summary" id="session-summary">
+    <div style="font-size:48px;margin-bottom:16px;">🎉</div>
+    <div style="font-size:22px;font-weight:700;margin-bottom:8px;">Session terminée !</div>
+    <div style="font-size:15px;color:var(--text2);margin-bottom:24px;" id="summary-text">—</div>
+    <div style="display:flex;gap:12px;justify-content:center;">
+      <a href="/" class="btn btn-secondary">← Dashboard</a>
+      <button class="btn btn-primary" onclick="lancerTestRevision()" id="btn-test-rev">🎯 Me tester (optionnel)</button>
+      <a href="/stats" class="btn btn-secondary">Voir mes stats →</a>
+    </div>
+  </div>
+
+  <!-- Modal test optionnel -->
+  <div id="modal-test-rev" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,.7);z-index:999;align-items:center;justify-content:center;">
+    <div style="background:var(--bg2);border:1px solid var(--border);border-radius:var(--radius-lg);padding:32px;max-width:600px;width:90%;max-height:80vh;overflow-y:auto;">
+      <div style="font-size:18px;font-weight:700;margin-bottom:20px;">🎯 Test de révision</div>
+      <div id="test-rev-content">
+        <div style="color:var(--text3);font-size:14px;">Génération des questions...</div>
+      </div>
+      <div style="margin-top:20px;display:flex;gap:12px;justify-content:flex-end;">
+        <button class="btn btn-secondary" onclick="document.getElementById('modal-test-rev').style.display='none'">Fermer</button>
+      </div>
+    </div>
+  </div>
+
+  {% else %}
+  <!-- Aucune carte due -->
+  <div class="rev-card">
+    <div class="rev-empty">
+      <div style="font-size:56px;margin-bottom:16px;">✅</div>
+      <div style="font-size:20px;font-weight:700;margin-bottom:8px;">Tout est à jour !</div>
+      <div style="font-size:14px;color:var(--text3);margin-bottom:28px;">
+        Aucune carte à réviser aujourd'hui. Reviens demain.
+      </div>
+      <a href="/apprendre" class="btn btn-primary">Créer de nouvelles flashcards →</a>
+    </div>
+  </div>
+  {% endif %}
+  </div><!-- /tab-revision -->
+</div><!-- /max-width -->
+
+{% endblock %}
+
+{% block scripts %}
+<script>
+const dues  = {{ dues | tojson }};
+let idx     = 0;
+let maitrisees = 0;
+
+function afficherCarte() {
+  if (idx >= dues.length) {
+    terminerSession(); return;
+  }
+  const c = dues[idx];
+  document.getElementById('rev-subject').textContent  = c.subject;
+  document.getElementById('rev-interval').textContent = `Intervalle actuel : ${c.interval_days} jour(s)`;
+  document.getElementById('rev-question').textContent = c.question;
+  document.getElementById('rev-answer').textContent   = c.answer;
+  document.getElementById('rev-answer').style.display = 'none';
+  document.getElementById('score-buttons').style.display = 'none';
+  document.getElementById('btn-voir').style.display   = 'block';
+  document.getElementById('rev-idx').textContent      = `${idx+1}/${dues.length}`;
+
+  const pct = Math.round(idx / dues.length * 100);
+  document.getElementById('rev-progress').style.width = pct + '%';
+  document.getElementById('rev-counter').textContent  = `${idx} / ${dues.length}`;
+}
+
+function voirReponse() {
+  document.getElementById('rev-answer').style.display   = 'block';
+  document.getElementById('score-buttons').style.display = 'flex';
+  document.getElementById('btn-voir').style.display     = 'none';
+}
+
+async function evaluer(score) {
+  const card = dues[idx];
+  try {
+    const data = await apiPost('/api/revision/evaluer', {
+      card_id: card.id, score: score
+    });
+    if (data.maitrisee) maitrisees++;
+    cartesRevisees.push(card);
+    showToast(
+      score >= 3
+        ? `✅ Prochain rappel dans ${data.interval_days} jour(s)`
+        : `🔁 À revoir demain`,
+      score >= 3 ? 'success' : 'info',
+      2000
+    );
+  } catch(e) {
+    showToast('Erreur lors de l\'évaluation', 'error');
+  }
+  idx++;
+  setTimeout(afficherCarte, 300);
+}
+
+function terminerSession() {
+  document.getElementById('rev-card').style.display      = 'none';
+  document.getElementById('session-summary').style.display = 'block';
+  document.getElementById('rev-progress').style.width     = '100%';
+  document.getElementById('rev-counter').textContent      = `${dues.length} / ${dues.length}`;
+  document.getElementById('summary-text').textContent =
+    `${maitrisees} / ${dues.length} cartes maîtrisées — ${Math.round(maitrisees/dues.length*100)}% de réussite`;
+}
+
+if (dues.length > 0) afficherCarte();
+
+function switchTab(name) {
+  document.querySelectorAll('.tab-pane').forEach(p => p.classList.remove('active'));
+  document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
+  document.getElementById('tab-' + name).classList.add('active');
+  event.target.classList.add('active');
+}
+
+let sourceActive = 'texte';
+function switchSource(src) {
+  sourceActive = src;
+  document.getElementById('src-texte').style.display  = src === 'texte'   ? 'block' : 'none';
+  document.getElementById('src-fichier').style.display = src === 'fichier' ? 'block' : 'none';
+  document.getElementById('src-btn-texte').classList.toggle('active',   src === 'texte');
+  document.getElementById('src-btn-fichier').classList.toggle('active', src === 'fichier');
+}
+
+function previewFichier(input) {
+  const file = input.files[0];
+  if (!file) return;
+  const isPdf = file.type === 'application/pdf';
+  document.getElementById('file-icon').textContent = isPdf ? '📄' : '🖼️';
+  document.getElementById('file-name').textContent = file.name;
+  document.getElementById('file-preview').style.display = 'flex';
+  document.getElementById('drop-zone').style.borderColor = 'var(--accent)';
+}
+
+function clearFichier() {
+  document.getElementById('cours-file').value = '';
+  document.getElementById('file-preview').style.display = 'none';
+  document.getElementById('drop-zone').style.borderColor = 'var(--border)';
+}
+
+async function importerCours() {
+  const sujet = document.getElementById('cours-sujet').value.trim() || 'Mon cours';
+  const nb    = document.getElementById('cours-nb').value;
+  const btn   = document.getElementById('btn-importer');
+  btn.disabled = true;
+  btn.textContent = '⏳ Génération...';
+
+  try {
+    let payload = { sujet, nb: parseInt(nb) };
+
+    if (sourceActive === 'fichier') {
+      const fileInput = document.getElementById('cours-file');
+      const file = fileInput.files[0];
+      if (!file) { showToast('Aucun fichier sélectionné', 'error'); btn.disabled=false; btn.textContent='✨ Générer'; return; }
+      const b64 = await new Promise((res, rej) => {
+        const r = new FileReader();
+        r.onload  = () => res(r.result.split(',')[1]);
+        r.onerror = () => rej(new Error('Lecture fichier échouée'));
+        r.readAsDataURL(file);
+      });
+      payload.fichier_b64  = b64;
+      payload.fichier_type = file.type;
+      payload.fichier_nom  = file.name;
+    } else {
+      const texte = document.getElementById('cours-input').value.trim();
+      if (!texte) { showToast('Colle ton cours d\'abord', 'error'); btn.disabled=false; btn.textContent='✨ Générer'; return; }
+      payload.texte = texte;
+    }
+
+    const data = await apiPost('/api/cours/importer', payload);
+    if (data.error) throw new Error(data.error);
+
+    document.getElementById('import-titre').textContent =
+      `✅ ${data.cards.length} flashcards créées pour "${sujet}"`;
+    const list = document.getElementById('import-cards-list');
+    list.innerHTML = data.cards.map((c, i) => `
+      <div style="background:var(--bg2);border:1px solid var(--border);border-radius:var(--radius);padding:16px;margin-bottom:10px;">
+        <div style="font-size:12px;color:var(--accent2);font-weight:600;margin-bottom:6px;">CARTE ${i+1}</div>
+        <div style="font-weight:600;margin-bottom:6px;">${c.question}</div>
+        <div style="font-size:13px;color:var(--text2);">→ ${c.answer}</div>
+      </div>`).join('');
+    document.getElementById('import-result').style.display = 'block';
+    document.querySelector('.import-zone').style.display = 'none';
+    showToast(`${data.cards.length} cartes enregistrées`, 'success');
+  } catch(e) {
+    showToast('Erreur : ' + e.message, 'error');
+  }
+  btn.disabled = false;
+  btn.textContent = '✨ Générer';
+}
+
+function resetImport() {
+  document.getElementById('cours-input').value = '';
+  document.getElementById('cours-sujet').value = '';
+  document.getElementById('import-result').style.display = 'none';
+  document.querySelector('.import-zone').style.display = 'block';
+}
+
+// ── Test optionnel après révision ──
+const cartesRevisees = [];
+
+async function lancerTestRevision() {
+  if (cartesRevisees.length === 0) {
+    showToast('Révise d\'abord quelques cartes', 'info'); return;
+  }
+  const modal = document.getElementById('modal-test-rev');
+  modal.style.display = 'flex';
+  document.getElementById('test-rev-content').innerHTML =
+    '<div style="color:var(--text3);">⏳ Génération des questions...</div>';
+
+  try {
+    const data = await apiPost('/api/revision/test', { cartes: cartesRevisees });
+    if (data.error) throw new Error(data.error);
+    afficherTestRevision(data.questions);
+  } catch(e) {
+    document.getElementById('test-rev-content').innerHTML =
+      `<div style="color:var(--red);">Erreur : ${e.message}</div>`;
+  }
+}
+
+function afficherTestRevision(questions) {
+  let html = '';
+  questions.forEach((q, i) => {
+    html += `
+      <div style="margin-bottom:20px;border:1px solid var(--border);border-radius:var(--radius);padding:16px;">
+        <div style="font-weight:600;margin-bottom:10px;">Q${i+1}. ${q.question}</div>
+        <textarea id="trep-${i}" placeholder="Ta réponse..." rows="2"
+          style="width:100%;background:var(--bg3);border:1px solid var(--border);border-radius:var(--radius);color:var(--text);font-family:'Inter',sans-serif;font-size:13px;padding:10px;box-sizing:border-box;resize:vertical;"></textarea>
+        <div id="tfb-${i}" style="display:none;margin-top:8px;font-size:13px;color:var(--text2);"></div>
+      </div>`;
+  });
+  html += `<button class="btn btn-primary" style="width:100%" onclick="soumettrTestRev(${JSON.stringify(questions).replace(/"/g,'&quot;')})">✅ Soumettre</button>`;
+  document.getElementById('test-rev-content').innerHTML = html;
+}
+
+async function soumettrTestRev(questions) {
+  let total = 0;
+  for (let i = 0; i < questions.length; i++) {
+    const rep = document.getElementById(`trep-${i}`)?.value || '';
+    try {
+      const d = await apiPost('/api/expose/corriger', {
+        question: questions[i].question,
+        reponse_user: rep,
+        reponse_attendue: questions[i].reponse_attendue
+      });
+      total += d.score || 0;
+      const fb = document.getElementById(`tfb-${i}`);
+      fb.style.display = 'block';
+      fb.style.color = d.score === 2 ? 'var(--green)' : d.score === 1 ? 'var(--yellow)' : 'var(--red)';
+      fb.textContent = `${d.score}/2 — ${d.feedback}`;
+    } catch(e) {}
+  }
+  showToast(`Score final : ${total}/${questions.length * 2}`, total >= questions.length ? 'success' : 'info', 4000);
+}
+
+
+</script>
+{% endblock %}
