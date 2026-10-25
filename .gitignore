@@ -4,4 +4,4 @@ outputs/
 inputs/
 __pycache__/
 *.pyc
-*.db
+*.dblance.sh
