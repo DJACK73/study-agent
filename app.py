@@ -875,4 +875,4 @@ if __name__ == "__main__":
     print("  STUDY AGENT - Interface web")
     print("  http://localhost:81")
     print("=" * 55)
-    app.run(host="0.0.0.0", port=8081, debug=False)
+    app.run(host="127.0.0.1", port=8081, debug=False)

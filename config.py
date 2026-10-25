@@ -7,4 +7,4 @@ INPUT_DIR      = "inputs"
 DB_PATH        = "data/sessions.db"
 
 # Mot de passe d'accès à l'interface
-ACCESS_PASSWORD = os.environ.get("ACCESS_PASSWORD", "studyagent2026")
+ACCESS_PASSWORD = os.environ["ACCESS_PASSWORD"]
