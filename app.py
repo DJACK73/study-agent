@@ -681,7 +681,6 @@ def generer_pdf_flashcards_bytes(cards: list, titre: str) -> bytes:
     return buffer.read()
 
 
-            story.append(Paragraph(safe, styles["corps"]))
 
 
 
