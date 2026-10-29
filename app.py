@@ -681,29 +681,6 @@ def generer_pdf_flashcards_bytes(cards: list, titre: str) -> bytes:
     return buffer.read()
 
 
-# ─────────────────────────────────────────────────────────────────────────────
-# Export PDF — 4 modèles
-# ─────────────────────────────────────────────────────────────────────────────
-
-def _parse_lignes(contenu: str, titre: str, story: list, styles: dict):
-    """Parse le texte markdown et ajoute les éléments au story ReportLab."""
-    from reportlab.platypus import Paragraph, Spacer
-    for ligne in contenu.split("\n"):
-        ligne = ligne.strip()
-        if not ligne:
-            story.append(Spacer(1, 5))
-            continue
-        safe = ligne.replace("&","&amp;").replace("<","&lt;").replace(">","&gt;")
-        safe = safe.replace("**", "").replace("*", "")  # strip markdown bold/italic
-        if ligne.startswith("# "):
-            story.append(Paragraph(safe[2:], styles["h1"]))
-        elif ligne.startswith("## "):
-            story.append(Paragraph(safe[3:], styles["h2"]))
-        elif ligne.startswith("### "):
-            story.append(Paragraph(safe[4:], styles["h3"]))
-        elif ligne.startswith(("- ", "* ", "• ")):
-            story.append(Paragraph("• " + safe[2:], styles["bullet"]))
-        else:
             story.append(Paragraph(safe, styles["corps"]))
 
 
@@ -717,7 +694,7 @@ def api_export_pdf():
     titre  = data.get("titre", "Study Agent")
     modele = data.get("modele", "moderne")
 
-    fn = PDF_MODELES.get(modele, pdf_moderne)
+    fn = _PDF_MODELES.get(modele, pdf_moderne)
     try:
         pdf_bytes = fn(texte, titre)
         return send_file(
