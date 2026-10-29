@@ -15,6 +15,11 @@ from modules.generator import (generer, generer_avec_plan, generer_conversation,
                                proposer_plan, generer_section)
 
 app = Flask(__name__)
+
+@app.context_processor
+def _inject_modele():
+    import config
+    return {"modele_ia": config.MODEL_FAST}
 app.config["MAX_CONTENT_LENGTH"] = 16 * 1024 * 1024  # 16 MB max upload
 
 # Init DB au démarrage
