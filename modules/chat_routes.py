@@ -1,3 +1,4 @@
+import json
 from flask import Blueprint, jsonify, request
 from modules import chat_db
 
@@ -75,16 +76,21 @@ def envoyer(cid):
     msg = ((request.get_json(silent=True) or {}).get("message") or "").strip()
     if not msg:
         return jsonify({"error": "Message vide"}), 400
+    web = bool((request.get_json(silent=True) or {}).get("web"))
     texte = f"{_historique(conv['messages'])}\n\nÉtudiant : {msg}".strip()
+    sources, web_statut = [], None
+    if web:
+        from modules.web_context import enrichir
+        texte, sources, web_statut = enrichir(msg[:200], texte, medical=True)
     try:
         rep = analyser_texte(texte, CHAT_PROMPT)
     except Exception as e:
         print(f"chat gemini: {e}")
         return jsonify({"error": "Gemini indisponible"}), 502
     chat_db.ajouter_message(cid, "user", msg)
-    mid = chat_db.ajouter_message(cid, "ai", rep)
+    mid = chat_db.ajouter_message(cid, "ai", rep, sources_json=(json.dumps(sources, ensure_ascii=False) if sources else None))
     titre = conv["titre"]
     if not conv["messages"] and titre == "Nouvelle discussion":
         titre = msg[:50]
         chat_db.renommer(cid, titre)
-    return jsonify({"reponse": rep, "message_id": mid, "titre": titre})
+    return jsonify({"reponse": rep, "message_id": mid, "titre": titre, "sources": sources, "web_statut": web_statut})
