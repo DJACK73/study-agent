@@ -24,6 +24,10 @@ app.config["MAX_CONTENT_LENGTH"] = 16 * 1024 * 1024  # 16 MB max upload
 
 # Init DB au démarrage
 init_db()
+from modules.chat_db import init_chat_db
+from modules.chat_routes import bp as chat_bp
+init_chat_db()
+app.register_blueprint(chat_bp)
 os.makedirs(INPUT_DIR, exist_ok=True)
 os.makedirs(OUTPUT_DIR, exist_ok=True)
 
