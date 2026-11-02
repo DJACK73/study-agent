@@ -84,7 +84,7 @@ def envoyer(cid):
     chat_db.ajouter_message(cid, "user", msg)
     mid = chat_db.ajouter_message(cid, "ai", rep)
     titre = conv["titre"]
-    if not conv["messages"]:
+    if not conv["messages"] and titre == "Nouvelle discussion":
         titre = msg[:50]
         chat_db.renommer(cid, titre)
     return jsonify({"reponse": rep, "message_id": mid, "titre": titre})
