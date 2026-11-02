@@ -10,3 +10,5 @@ lance.sh
 venv/
 
 .env
+
+*.bak

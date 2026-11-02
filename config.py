@@ -19,3 +19,6 @@ INPUT_DIR = "inputs"
 DB_PATH = "data/sessions.db"
 
 PORT = int(os.environ.get("PORT", "8081"))
+
+EXA_API_KEYS = _list("EXA_API_KEYS") or _list("EXA_API_KEY")
+SEARCH_PROVIDERS = _list("SEARCH_PROVIDERS") or ["exa"]
