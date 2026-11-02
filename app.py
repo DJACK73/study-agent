@@ -74,6 +74,7 @@ def api_generer():
     if not texte and not image_b64:
         return jsonify({"error": "Contenu vide"}), 400
 
+    web_statut, sources = None, []
     try:
         if image_b64:
             img_data = base64.b64decode(image_b64)
@@ -84,6 +85,9 @@ def api_generer():
             est_image = True
             contenu_id = "cours (image)"
         else:
+            if mode == 1 and data.get("web"):
+                from modules.web_context import enrichir
+                contexte, sources, web_statut = enrichir(texte, contexte, medical=True)
             resultat  = generer(texte, mode, est_image=False, contexte=contexte)
             est_image = False
             contenu_id = texte[:60]
@@ -103,7 +107,8 @@ def api_generer():
             except Exception as e:
                 print(f"Sauvegarde SQLite : {e}")
 
-        return jsonify({"resultat": resultat, "mode": mode})
+        return jsonify({"resultat": resultat, "mode": mode,
+                        "sources": sources, "web_statut": web_statut})
 
     except Exception as e:
         return jsonify({"error": str(e)}), 500

@@ -252,6 +252,9 @@
       <div style="font-size:15px;font-weight:700;margin-bottom:4px;">3. Contexte <span style="color:var(--text3);font-weight:400;font-size:13px;">(optionnel)</span></div>
       <div style="font-size:12px;color:var(--text3);margin-bottom:12px;">Niveau, objectif, type d'examen...</div>
       <input class="input" id="contexte" placeholder="Ex: Étudiant en 3e année de médecine, examen dans 2 semaines"/>
+      <label style="display:flex;gap:8px;align-items:center;margin-top:12px;font-size:13px;color:var(--text3);">
+        <input type="checkbox" id="web-search"/> Recherche web, sources médicales (mode Explication seul)
+      </label>
     </div>
 
     <!-- Longueur exposé (mode 2 uniquement) -->
@@ -562,7 +565,8 @@ async function lancer() {
 
     } else {
       const data = await apiPost('/api/generer', {
-        mode: currentMode, texte, image_b64: imageB64, contexte
+        mode: currentMode, texte, image_b64: imageB64, contexte,
+        web: currentMode === 1 && document.getElementById('web-search').checked
       });
       hideLoading();
       if (data.error) { showToast(data.error, 'error'); return; }
@@ -579,12 +583,38 @@ async function lancer() {
         ['','💡','📄','🃏','✅','📅','🗂️','⚡','🗺️','🎓'][currentMode],
         ['','Explication','Exposé','Flashcards','QCM','Plan de révision',
          'Plan d\'exposé','Résumé','Mind map','Examen'][currentMode]);
+      afficherSources(data);
     }
     showToast('Génération terminée !', 'success');
   } catch(e) {
     hideLoading();
     showToast('Erreur de connexion', 'error');
   }
+}
+
+function afficherSources(data) {
+  const old = document.getElementById('web-sources'); if (old) old.remove();
+  if (!data || !data.web_statut) return;
+  const box = document.createElement('div');
+  box.id = 'web-sources';
+  box.style.cssText = 'margin-top:16px;font-size:13px;color:var(--text3);';
+  if (data.web_statut !== 'ok') {
+    const msg = {plafond:'Plafond de recherches atteint', aucun:'Aucune source trouvée', indisponible:'Recherche indisponible'}[data.web_statut] || 'Recherche indisponible';
+    box.textContent = msg + ', réponse sans sources.';
+  } else {
+    const t = document.createElement('div'); t.textContent = 'Sources web'; t.style.fontWeight = '700';
+    box.appendChild(t);
+    data.sources.forEach((s, i) => {
+      const row = document.createElement('div');
+      const a = document.createElement('a');
+      a.textContent = '[' + (i + 1) + '] ' + s.titre;
+      if (/^https?:\/\//.test(s.url)) { a.href = s.url; a.target = '_blank'; a.rel = 'noopener noreferrer'; }
+      row.appendChild(a);
+      row.appendChild(document.createTextNode(' (' + (s.date || 'date inconnue') + ')'));
+      box.appendChild(row);
+    });
+  }
+  document.getElementById('result-content').insertAdjacentElement('afterend', box);
 }
 
 function showResult(id) {
