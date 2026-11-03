@@ -4,6 +4,7 @@ import uuid
 from pathlib import Path
 from flask import Blueprint, jsonify, request, send_from_directory
 from modules import chat_db
+from modules.chat_intent import detecter_pdf, extraire_partie, journaliser_rate, sujet_dans
 
 bp = Blueprint("chat", __name__, url_prefix="/api/chat")
 
@@ -147,6 +148,10 @@ def envoyer(cid):
         msg = msg or "Explique cette image."
     if not msg:
         return jsonify({"error": "Message vide"}), 400
+    demande = None if data else detecter_pdf(msg)
+    journaliser_rate(msg, demande)
+    if demande:
+        return _repondre_pdf(cid, conv, msg, demande)
     texte = f"{_historique(conv['messages'])}\n\nÉtudiant : {msg}".strip()
     sources, web_statut = [], None
     if web:
@@ -175,7 +180,7 @@ def envoyer(cid):
         titre = msg[:50]
         chat_db.renommer(cid, titre)
     return jsonify({"reponse": rep, "message_id": mid, "titre": titre, "sources": sources,
-                    "web_statut": web_statut, "image_path": rel})
+                    "web_statut": web_statut, "image_path": rel, "pdf_path": None})
 
 
 _NOM_PDF = re.compile(r"[0-9a-f]{32}\.pdf")
@@ -186,3 +191,43 @@ def telecharger_pdf(nom):
     if not _NOM_PDF.fullmatch(nom):
         return jsonify({"error": "Introuvable"}), 404
     return send_from_directory(PDF_DIR, nom, mimetype="application/pdf")
+
+
+def _repondre_pdf(cid, conv, msg, d):
+    """Demande de PDF : règles fixes. Gemini seulement pour un sujet sans réponse préalable."""
+    from modules.exporters.pdf import generer_pdf_bytes
+    from modules.gemini_handler import analyser_texte
+    ias = [m["contenu"] for m in conv["messages"] if m["role"] == "ai"]
+    note, contenu = "", ""
+    if d["portee"] == "tout":
+        contenu = "\n\n".join(ias)
+    elif d["portee"] == "partie":
+        contenu = next((p for p in (extraire_partie(c, d["partie"]) for c in reversed(ias)) if p), "")
+        if not contenu and ias:
+            contenu = ias[-1]
+            note = f"Partie « {d['partie']} » introuvable : PDF du dernier message. "
+    elif ias:
+        contenu = ias[-1]
+    sujet = d.get("sujet")
+    try:
+        if sujet and not (contenu and sujet_dans(contenu, sujet)):
+            contenu = analyser_texte(f"Rédige un exposé structuré en Markdown sur : {sujet}", CHAT_PROMPT)
+        if not contenu:
+            rep, rel = "Aucune réponse à exporter pour l'instant.", None
+        else:
+            titre_pdf = (sujet or conv["titre"])[:60]
+            PDF_DIR.mkdir(parents=True, exist_ok=True)
+            fichier = PDF_DIR / f"{uuid.uuid4().hex}.pdf"
+            fichier.write_bytes(generer_pdf_bytes(contenu, titre_pdf, "moderne"))
+            rel, rep = f"pdfs/{fichier.name}", f"{note}PDF prêt : {titre_pdf}"
+    except Exception as e:
+        print(f"chat pdf: {e}")
+        return jsonify({"error": "Génération PDF échouée"}), 502
+    chat_db.ajouter_message(cid, "user", msg)
+    mid = chat_db.ajouter_message(cid, "ai", rep, pdf_path=rel)
+    titre = conv["titre"]
+    if not conv["messages"] and titre == "Nouvelle discussion":
+        titre = msg[:50]
+        chat_db.renommer(cid, titre)
+    return jsonify({"reponse": rep, "message_id": mid, "titre": titre, "sources": [],
+                    "web_statut": None, "image_path": None, "pdf_path": rel})

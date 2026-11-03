@@ -66,3 +66,64 @@ def test_delete_global_purge_pdf(cli, tmp_path):
     chat_db.ajouter_message(cid, "ai", "x", pdf_path=f"pdfs/{f.name}")
     assert cli.delete("/api/chat/conversations?confirm=oui").status_code == 200
     assert not f.exists()
+
+
+def _envoyer(cli, cid, msg):
+    return cli.post(f"/api/chat/conversations/{cid}/messages", json={"message": msg})
+
+
+def _conv(cli):
+    return cli.post("/api/chat/conversations").get_json()["id"]
+
+
+@pytest.fixture
+def gem(monkeypatch):
+    appels = []
+
+    def fake(texte, prompt):
+        appels.append(texte)
+        return "## Cause\nPlasmodium\n\n## Traitement\nArtésunate"
+    monkeypatch.setattr("modules.gemini_handler.analyser_texte", fake)
+    return appels
+
+
+def test_pdf_dernier_message(cli, gem, tmp_path):
+    import pathlib
+    cid = _conv(cli)
+    _envoyer(cli, cid, "Définis le paludisme")
+    d = _envoyer(cli, cid, "Fais-moi la leçon en PDF").get_json()
+    assert d["pdf_path"].startswith("pdfs/") and len(gem) == 1
+    assert (tmp_path / "pdfs" / pathlib.Path(d["pdf_path"]).name).read_bytes().startswith(b"%PDF")
+
+
+def test_pdf_partie_et_introuvable(cli, gem):
+    cid = _conv(cli)
+    _envoyer(cli, cid, "Définis le paludisme")
+    assert _envoyer(cli, cid, "Je veux un pdf de la partie traitement").get_json()["pdf_path"]
+    d = _envoyer(cli, cid, "pdf de la partie zzzz").get_json()
+    assert d["pdf_path"] and "introuvable" in d["reponse"]
+
+
+def test_pdf_sujet_sans_reponse_prealable(cli, gem):
+    cid = _conv(cli)
+    d = _envoyer(cli, cid, "exposé en PDF sur le paludisme").get_json()
+    assert d["pdf_path"] and len(gem) == 1
+
+
+def test_pdf_rien_a_exporter(cli, gem):
+    d = _envoyer(cli, _conv(cli), "pdf").get_json()
+    assert d["pdf_path"] is None and "Aucune" in d["reponse"] and gem == []
+
+
+def test_pdf_sujet_gemini_echec(cli, monkeypatch):
+    def boom(t, p):
+        raise RuntimeError("x")
+    monkeypatch.setattr("modules.gemini_handler.analyser_texte", boom)
+    cid = _conv(cli)
+    assert _envoyer(cli, cid, "pdf sur le tetanos").status_code == 502
+    assert cli.get(f"/api/chat/conversations/{cid}").get_json()["messages"] == []
+
+
+def test_demande_proche_journalisee(cli, gem, tmp_path):
+    d = _envoyer(cli, _conv(cli), "Peux-tu l'imprimer ?").get_json()
+    assert d["pdf_path"] is None and (tmp_path / "log.jsonl").exists()
