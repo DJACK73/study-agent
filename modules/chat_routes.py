@@ -55,6 +55,15 @@ HIST_MAX_MSG = 12
 HIST_MAX_CAR = 12000
 
 
+def _requete_web(messages: list[dict], msg: str) -> str:
+    """Message court (suivi) : on ajoute la dernière question de l'étudiant pour garder le sujet."""
+    if len(msg) < 40:
+        for m in reversed(messages):
+            if m["role"] == "user":
+                return f"{m['contenu'][:150]} {msg}"
+    return msg[:200]
+
+
 def _historique(messages: list[dict]) -> str:
     """12 derniers messages, plafonnés en caractères (les plus anciens sautent d'abord)."""
     out, total = [], 0
@@ -81,7 +90,7 @@ def envoyer(cid):
     sources, web_statut = [], None
     if web:
         from modules.web_context import enrichir
-        texte, sources, web_statut = enrichir(msg[:200], texte, medical=True)
+        texte, sources, web_statut = enrichir(_requete_web(conv['messages'], msg), texte, medical=True)
     try:
         rep = analyser_texte(texte, CHAT_PROMPT)
     except Exception as e:
