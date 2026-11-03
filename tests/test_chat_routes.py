@@ -153,3 +153,17 @@ def test_image_gemini_echec_nettoie(ctx, tmp_path, monkeypatch):
     cid = chat_db.creer()
     assert _img(ctx, cid, PNG).status_code == 502
     assert list((tmp_path / "up").iterdir()) == [] and chat_db.lire(cid)["messages"] == []
+
+
+def test_delete_purge_les_images(ctx, tmp_path, monkeypatch):
+    from modules import chat_db
+    monkeypatch.setattr("modules.chat_routes.UPLOAD_DIR", tmp_path / "up")
+    monkeypatch.setattr("modules.gemini_handler.analyser_image", lambda p, pr: "IMG")
+    c1, c2 = chat_db.creer(), chat_db.creer()
+    _img(ctx, c1, PNG)
+    _img(ctx, c2, PNG)
+    assert len(list((tmp_path / "up").iterdir())) == 2
+    assert ctx.delete(f"/api/chat/conversations/{c1}").status_code == 200
+    assert len(list((tmp_path / "up").iterdir())) == 1
+    assert ctx.delete("/api/chat/conversations?confirm=oui").status_code == 200
+    assert list((tmp_path / "up").iterdir()) == []

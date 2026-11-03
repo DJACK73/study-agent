@@ -35,7 +35,10 @@ def renomme(cid):
 
 @bp.delete("/conversations/<int:cid>")
 def supprime(cid):
+    chemins = _chemins_images(cid)
     n = chat_db.supprimer(cid)
+    if n:
+        _purger(chemins)
     return (jsonify({"ok": True}), 200) if n else (jsonify({"error": "Introuvable"}), 404)
 
 
@@ -43,7 +46,24 @@ def supprime(cid):
 def supprime_tout():
     if request.args.get("confirm") != "oui":
         return jsonify({"error": "Ajouter ?confirm=oui"}), 400
-    return jsonify({"supprimees": chat_db.supprimer(None)})
+    chemins = _chemins_images()
+    n = chat_db.supprimer(None)
+    _purger(chemins)
+    return jsonify({"supprimees": n})
+
+
+def _chemins_images(cid=None) -> list[str]:
+    from modules.database import get_conn
+    sql = "SELECT image_path FROM messages WHERE image_path IS NOT NULL"
+    with get_conn() as conn:
+        rows = conn.execute(sql + (" AND conversation_id=?" if cid else ""), (cid,) if cid else ()).fetchall()
+    return [r["image_path"] for r in rows]
+
+
+def _purger(chemins: list[str]) -> None:
+    """Supprime les fichiers après la suppression en base. Seul le nom de fichier est utilisé."""
+    for rel in chemins:
+        (UPLOAD_DIR / Path(rel).name).unlink(missing_ok=True)
 
 
 CHAT_PROMPT = (
