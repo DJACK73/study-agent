@@ -1,4 +1,6 @@
 import json
+import uuid
+from pathlib import Path
 from flask import Blueprint, jsonify, request
 from modules import chat_db
 
@@ -76,30 +78,73 @@ def _historique(messages: list[dict]) -> str:
     return "\n\n".join(reversed(out))
 
 
+UPLOAD_DIR = Path(__file__).resolve().parent.parent / "data" / "uploads"
+
+
+def _ext_image(b: bytes) -> str | None:
+    """Type réel par octets magiques. Le nom envoyé par le client n'est jamais utilisé."""
+    if b[:3] == b"\xff\xd8\xff":
+        return "jpg"
+    if b[:8] == b"\x89PNG\r\n\x1a\n":
+        return "png"
+    if b[:4] == b"RIFF" and b[8:12] == b"WEBP":
+        return "webp"
+    return None
+
+
+def _lire_requete():
+    """Multipart (message, web, image) ou JSON (message, web)."""
+    if request.mimetype == "multipart/form-data":
+        f = request.form
+        return ((f.get("message") or "").strip(),
+                (f.get("web") or "").lower() in ("1", "true", "on"),
+                request.files.get("image"))
+    d = request.get_json(silent=True) or {}
+    return (d.get("message") or "").strip(), bool(d.get("web")), None
+
+
 @bp.post("/conversations/<int:cid>/messages")
 def envoyer(cid):
-    from modules.gemini_handler import analyser_texte  # import local : client créé à l'import
+    from modules.gemini_handler import analyser_texte, analyser_image  # import local : client créé à l'import
     conv = chat_db.lire(cid)
     if conv is None:
         return jsonify({"error": "Introuvable"}), 404
-    msg = ((request.get_json(silent=True) or {}).get("message") or "").strip()
+    msg, web, fichier = _lire_requete()
+    data = ext = None
+    if fichier:
+        data = fichier.read()
+        ext = _ext_image(data)
+        if ext is None:
+            return jsonify({"error": "Image invalide (jpg, png, webp)"}), 400
+        msg = msg or "Explique cette image."
     if not msg:
         return jsonify({"error": "Message vide"}), 400
-    web = bool((request.get_json(silent=True) or {}).get("web"))
     texte = f"{_historique(conv['messages'])}\n\nÉtudiant : {msg}".strip()
     sources, web_statut = [], None
     if web:
         from modules.web_context import enrichir
         texte, sources, web_statut = enrichir(_requete_web(conv['messages'], msg), texte, medical=True)
+    img_path = None
+    if data:
+        UPLOAD_DIR.mkdir(parents=True, exist_ok=True)
+        img_path = UPLOAD_DIR / f"{uuid.uuid4().hex}.{ext}"
+        img_path.write_bytes(data)
     try:
-        rep = analyser_texte(texte, CHAT_PROMPT)
+        if img_path:
+            rep = analyser_image(str(img_path), f"{CHAT_PROMPT}\n\n{texte}")
+        else:
+            rep = analyser_texte(texte, CHAT_PROMPT)
     except Exception as e:
         print(f"chat gemini: {e}")
+        if img_path:
+            img_path.unlink(missing_ok=True)
         return jsonify({"error": "Gemini indisponible"}), 502
-    chat_db.ajouter_message(cid, "user", msg)
+    rel = f"uploads/{img_path.name}" if img_path else None
+    chat_db.ajouter_message(cid, "user", msg, image_path=rel)
     mid = chat_db.ajouter_message(cid, "ai", rep, sources_json=(json.dumps(sources, ensure_ascii=False) if sources else None))
     titre = conv["titre"]
     if not conv["messages"] and titre == "Nouvelle discussion":
         titre = msg[:50]
         chat_db.renommer(cid, titre)
-    return jsonify({"reponse": rep, "message_id": mid, "titre": titre, "sources": sources, "web_statut": web_statut})
+    return jsonify({"reponse": rep, "message_id": mid, "titre": titre, "sources": sources,
+                    "web_statut": web_statut, "image_path": rel})
