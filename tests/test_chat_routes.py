@@ -67,8 +67,7 @@ def test_sources_json_stocke(ctx, monkeypatch):
     _post(ctx, cid, message="Définis le paludisme en 1 phrase.", web=False)
     r = _post(ctx, cid, message="Et chez l enfant ?", web=True).get_json()
     assert r["web_statut"] == "ok"
-    assert vus["requete"].endswith("Et chez l enfant ?")
-    assert "paludisme" in vus["requete"]
+    assert vus["requete"]  # le contenu vient de Gemini : voir test_chat_pdf.py::test_web_utilise_sujet_gemini
     msgs = chat_db.lire(cid)["messages"]
     assert msgs[-1]["role"] == "ai" and json.loads(msgs[-1]["sources_json"]) == src
     assert msgs[-2]["sources_json"] is None

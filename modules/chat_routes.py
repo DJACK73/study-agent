@@ -156,7 +156,7 @@ def envoyer(cid):
     sources, web_statut = [], None
     if web:
         from modules.web_context import enrichir
-        texte, sources, web_statut = enrichir(_requete_web(conv['messages'], msg), texte, medical=True)
+        texte, sources, web_statut = enrichir(_sujet_web(conv['messages'], msg), texte, medical=True)
     img_path = None
     if data:
         UPLOAD_DIR.mkdir(parents=True, exist_ok=True)
@@ -231,3 +231,23 @@ def _repondre_pdf(cid, conv, msg, d):
         chat_db.renommer(cid, titre)
     return jsonify({"reponse": rep, "message_id": mid, "titre": titre, "sources": [],
                     "web_statut": None, "image_path": None, "pdf_path": rel})
+
+
+PROMPT_SUJET = ("Extrais le sujet de recherche web de la dernière question de l'étudiant, "
+                "en 5 mots maximum, en français, sans ponctuation ni guillemets. "
+                "Réponds uniquement par ces mots.")
+
+
+def _sujet_web(messages: list[dict], msg: str) -> str:
+    """Sujet de recherche extrait par Gemini. Repli sur l'heuristique : ne bloque jamais l'envoi."""
+    from modules.gemini_handler import analyser_texte
+    prec = next((m["contenu"] for m in reversed(messages) if m["role"] == "user"), "")
+    entree = (f"Question précédente : {prec[:300]}\n" if prec else "") + f"Dernière question : {msg[:300]}"
+    try:
+        s = " ".join((analyser_texte(entree, PROMPT_SUJET) or "").split()).strip(" \"'.")
+    except Exception as e:
+        print(f"sujet web: {e}")
+        s = ""
+    if not s or len(s) > 80 or len(s.split()) > 8:
+        return _requete_web(messages, msg)
+    return s

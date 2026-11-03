@@ -127,3 +127,56 @@ def test_pdf_sujet_gemini_echec(cli, monkeypatch):
 def test_demande_proche_journalisee(cli, gem, tmp_path):
     d = _envoyer(cli, _conv(cli), "Peux-tu l'imprimer ?").get_json()
     assert d["pdf_path"] is None and (tmp_path / "log.jsonl").exists()
+
+
+def _fake_enrichir(vus):
+    def f(requete, texte, medical=False):
+        vus.append(requete)
+        return texte, [], "aucun"
+    return f
+
+
+def test_web_utilise_sujet_gemini(cli, monkeypatch):
+    vus, prompts = [], []
+
+    def fake(texte, prompt):
+        prompts.append(prompt)
+        return "paludisme enfant" if "Extrais" in prompt else "rep"
+    monkeypatch.setattr("modules.gemini_handler.analyser_texte", fake)
+    monkeypatch.setattr("modules.web_context.enrichir", _fake_enrichir(vus))
+    cid = cli.post("/api/chat/conversations").get_json()["id"]
+    cli.post(f"/api/chat/conversations/{cid}/messages", json={"message": "Et chez l enfant ?", "web": True})
+    assert vus == ["paludisme enfant"]
+
+
+def test_web_repli_si_gemini_echoue(cli, monkeypatch):
+    vus = []
+
+    def fake(texte, prompt):
+        if "Extrais" in prompt:
+            raise RuntimeError("x")
+        return "rep"
+    monkeypatch.setattr("modules.gemini_handler.analyser_texte", fake)
+    monkeypatch.setattr("modules.web_context.enrichir", _fake_enrichir(vus))
+    cid = cli.post("/api/chat/conversations").get_json()["id"]
+    r = cli.post(f"/api/chat/conversations/{cid}/messages", json={"message": "Définis le tétanos.", "web": True})
+    assert r.status_code == 200 and vus == ["Définis le tétanos."]
+
+
+def test_web_repli_si_sujet_invalide(cli, monkeypatch):
+    vus = []
+    monkeypatch.setattr("modules.gemini_handler.analyser_texte",
+                        lambda t, p: "mot " * 20 if "Extrais" in p else "rep")
+    monkeypatch.setattr("modules.web_context.enrichir", _fake_enrichir(vus))
+    cid = cli.post("/api/chat/conversations").get_json()["id"]
+    cli.post(f"/api/chat/conversations/{cid}/messages", json={"message": "Définis le tétanos.", "web": True})
+    assert vus == ["Définis le tétanos."]
+
+
+def test_pas_d_extraction_sans_web(cli, monkeypatch):
+    prompts = []
+    monkeypatch.setattr("modules.gemini_handler.analyser_texte",
+                        lambda t, p: prompts.append(p) or "rep")
+    cid = cli.post("/api/chat/conversations").get_json()["id"]
+    cli.post(f"/api/chat/conversations/{cid}/messages", json={"message": "Définis le tétanos."})
+    assert not any("Extrais" in p for p in prompts)
