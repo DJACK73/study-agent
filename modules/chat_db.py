@@ -22,6 +22,9 @@ def init_chat_db() -> None:
             );
             CREATE INDEX IF NOT EXISTS idx_msg_conv ON messages(conversation_id);
         """)
+        cols = {r["name"] for r in conn.execute("PRAGMA table_info(messages)")}
+        if "pdf_path" not in cols:
+            conn.execute("ALTER TABLE messages ADD COLUMN pdf_path TEXT")
 
 
 def creer(titre: str = "Nouvelle discussion") -> int:
@@ -31,11 +34,12 @@ def creer(titre: str = "Nouvelle discussion") -> int:
 
 
 def ajouter_message(conv_id: int, role: str, contenu: str,
-                    sources_json: str | None = None, image_path: str | None = None) -> int:
+                    sources_json: str | None = None, image_path: str | None = None,
+                    pdf_path: str | None = None) -> int:
     with get_conn() as conn:
         mid = conn.execute(
-            "INSERT INTO messages (conversation_id, role, contenu, sources_json, image_path) "
-            "VALUES (?,?,?,?,?)", (conv_id, role, contenu, sources_json, image_path)).lastrowid
+            "INSERT INTO messages (conversation_id, role, contenu, sources_json, image_path, pdf_path) "
+            "VALUES (?,?,?,?,?,?)", (conv_id, role, contenu, sources_json, image_path, pdf_path)).lastrowid
         conn.execute("UPDATE conversations SET updated_at=CURRENT_TIMESTAMP WHERE id=?", (conv_id,))
         return mid
 
@@ -52,7 +56,7 @@ def lire(conv_id: int) -> dict | None:
         c = conn.execute("SELECT id, titre FROM conversations WHERE id=?", (conv_id,)).fetchone()
         if not c:
             return None
-        m = conn.execute("SELECT id, role, contenu, sources_json, image_path, created_at "
+        m = conn.execute("SELECT id, role, contenu, sources_json, image_path, pdf_path, created_at "
                          "FROM messages WHERE conversation_id=? ORDER BY id", (conv_id,)).fetchall()
         return {**dict(c), "messages": [dict(r) for r in m]}
 

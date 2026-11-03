@@ -1,7 +1,8 @@
 import json
+import re
 import uuid
 from pathlib import Path
-from flask import Blueprint, jsonify, request
+from flask import Blueprint, jsonify, request, send_from_directory
 from modules import chat_db
 
 bp = Blueprint("chat", __name__, url_prefix="/api/chat")
@@ -53,17 +54,23 @@ def supprime_tout():
 
 
 def _chemins_images(cid=None) -> list[str]:
+    """Chemins relatifs des fichiers (images et PDF) rattachés aux messages."""
     from modules.database import get_conn
-    sql = "SELECT image_path FROM messages WHERE image_path IS NOT NULL"
+    out = []
     with get_conn() as conn:
-        rows = conn.execute(sql + (" AND conversation_id=?" if cid else ""), (cid,) if cid else ()).fetchall()
-    return [r["image_path"] for r in rows]
+        for col in ("image_path", "pdf_path"):
+            sql = f"SELECT {col} FROM messages WHERE {col} IS NOT NULL"
+            rows = conn.execute(sql + (" AND conversation_id=?" if cid else ""),
+                                (cid,) if cid else ()).fetchall()
+            out += [r[col] for r in rows]
+    return out
 
 
 def _purger(chemins: list[str]) -> None:
     """Supprime les fichiers après la suppression en base. Seul le nom de fichier est utilisé."""
     for rel in chemins:
-        (UPLOAD_DIR / Path(rel).name).unlink(missing_ok=True)
+        base = PDF_DIR if rel.startswith("pdfs/") else UPLOAD_DIR
+        (base / Path(rel).name).unlink(missing_ok=True)
 
 
 CHAT_PROMPT = (
@@ -99,6 +106,7 @@ def _historique(messages: list[dict]) -> str:
 
 
 UPLOAD_DIR = Path(__file__).resolve().parent.parent / "data" / "uploads"
+PDF_DIR = Path(__file__).resolve().parent.parent / "data" / "pdfs"
 
 
 def _ext_image(b: bytes) -> str | None:
@@ -168,3 +176,13 @@ def envoyer(cid):
         chat_db.renommer(cid, titre)
     return jsonify({"reponse": rep, "message_id": mid, "titre": titre, "sources": sources,
                     "web_statut": web_statut, "image_path": rel})
+
+
+_NOM_PDF = re.compile(r"[0-9a-f]{32}\.pdf")
+
+
+@bp.get("/pdf/<nom>")
+def telecharger_pdf(nom):
+    if not _NOM_PDF.fullmatch(nom):
+        return jsonify({"error": "Introuvable"}), 404
+    return send_from_directory(PDF_DIR, nom, mimetype="application/pdf")
