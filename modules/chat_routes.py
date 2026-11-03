@@ -193,11 +193,30 @@ def telecharger_pdf(nom):
     return send_from_directory(PDF_DIR, nom, mimetype="application/pdf")
 
 
+_MSG_RIEN = "Aucune réponse à exporter pour l'instant."
+_TITRE_MD = re.compile(r"^#{1,2}[ \t]+(.+?)[ \t#]*$", re.M)
+
+
+def _reponses_ia(messages):
+    """Réponses IA exportables : exclut les messages PDF et le message « rien à exporter »."""
+    return [m["contenu"] for m in messages
+            if m["role"] == "ai" and not m["pdf_path"] and m["contenu"] != _MSG_RIEN]
+
+
+def _titre_pdf(contenu, sujet, titre_conv):
+    """Sujet explicite, sinon premier titre # / ## du contenu, sinon titre de conversation."""
+    if sujet:
+        return sujet[:60]
+    m = _TITRE_MD.search(contenu or "")
+    t = m.group(1).replace("*", "").replace("`", "").strip() if m else ""
+    return (t or titre_conv)[:60]
+
+
 def _repondre_pdf(cid, conv, msg, d):
     """Demande de PDF : règles fixes. Gemini seulement pour un sujet sans réponse préalable."""
     from modules.exporters.pdf import generer_pdf_bytes
     from modules.gemini_handler import analyser_texte
-    ias = [m["contenu"] for m in conv["messages"] if m["role"] == "ai"]
+    ias = _reponses_ia(conv["messages"])
     note, contenu = "", ""
     if d["portee"] == "tout":
         contenu = "\n\n".join(ias)
@@ -213,9 +232,9 @@ def _repondre_pdf(cid, conv, msg, d):
         if sujet and not (contenu and sujet_dans(contenu, sujet)):
             contenu = analyser_texte(f"Rédige un exposé structuré en Markdown sur : {sujet}", CHAT_PROMPT)
         if not contenu:
-            rep, rel = "Aucune réponse à exporter pour l'instant.", None
+            rep, rel = _MSG_RIEN, None
         else:
-            titre_pdf = (sujet or conv["titre"])[:60]
+            titre_pdf = _titre_pdf(contenu, sujet, conv["titre"])
             PDF_DIR.mkdir(parents=True, exist_ok=True)
             fichier = PDF_DIR / f"{uuid.uuid4().hex}.pdf"
             fichier.write_bytes(generer_pdf_bytes(contenu, titre_pdf, "moderne"))
