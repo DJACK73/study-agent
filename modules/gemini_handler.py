@@ -22,6 +22,7 @@ def analyser_image(chemin_image: str, prompt: str) -> str:
         ".jpg": "image/jpeg",
         ".jpeg": "image/jpeg",
         ".png": "image/png",
+        ".webp": "image/webp",
         ".pdf": "application/pdf"
     }
     mime = mime_types.get(ext, "image/jpeg")
