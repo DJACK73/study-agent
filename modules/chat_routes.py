@@ -232,6 +232,16 @@ def telecharger_pdf(nom):
     return send_from_directory(PDF_DIR, nom, mimetype="application/pdf")
 
 
+_NOM_IMG = re.compile(r"[0-9a-f]{32}\.(jpg|png|webp)")
+
+
+@bp.get("/img/<nom>")
+def lire_image(nom):
+    if not _NOM_IMG.fullmatch(nom):
+        return jsonify({"error": "Introuvable"}), 404
+    return send_from_directory(UPLOAD_DIR, nom)
+
+
 _MSG_RIEN = "Aucune réponse à exporter pour l'instant."
 
 
