@@ -48,6 +48,11 @@ def apprendre():
     return render_template("apprendre.html")
 
 
+@app.route("/discuter")
+def discuter():
+    return render_template("discuter.html")
+
+
 @app.route("/revision")
 def revision():
     dues = get_due_cards(limit=30)

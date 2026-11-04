@@ -146,6 +146,9 @@
     <a href="/apprendre" class="nav-item {% if request.path == '/apprendre' %}active{% endif %}">
       <span class="nav-icon">📚</span> Apprendre
     </a>
+    <a href="/discuter" class="nav-item {% if request.path == '/discuter' %}active{% endif %}">
+      <span class="nav-icon">💬</span> Discuter
+    </a>
     <a href="/revision" class="nav-item {% if request.path == '/revision' %}active{% endif %}">
       <span class="nav-icon">🔁</span> Révision
       {% if stats is defined and stats.due_today > 0 %}
