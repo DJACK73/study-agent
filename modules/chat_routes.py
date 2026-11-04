@@ -206,7 +206,13 @@ def envoyer(cid):
             img_path.unlink(missing_ok=True)
         return jsonify({"error": "Gemini indisponible"}), 502
     rel = f"uploads/{img_path.name}" if img_path else None
-    chat_db.ajouter_message(cid, "user", f"📎 {nom_pdf} — {msg}" if texte_pdf else msg, image_path=rel)
+    from sqlite3 import IntegrityError
+    try:
+        chat_db.ajouter_message(cid, "user", f"📎 {nom_pdf} — {msg}" if texte_pdf else msg, image_path=rel)
+    except IntegrityError:  # discussion supprimée pendant l'appel Gemini
+        if img_path:
+            img_path.unlink(missing_ok=True)
+        return jsonify({"error": "Discussion supprimée pendant la réponse"}), 404
     mid = chat_db.ajouter_message(cid, "ai", rep, sources_json=(json.dumps(sources, ensure_ascii=False) if sources else None))
     titre = conv["titre"]
     if not conv["messages"] and titre == "Nouvelle discussion":
