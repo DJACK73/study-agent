@@ -49,9 +49,9 @@
       }
       const lst = RE_UL.test(l) ? ['ul', RE_UL] : RE_OL.test(l) ? ['ol', RE_OL] : null;
       if (lst) {
-        const it = [];
+        const it = [], n0 = (L[i].match(/^\s*(\d+)/) || [])[1];
         while (i < L.length && lst[1].test(L[i])) it.push('<li>' + inl(L[i++].match(lst[1])[1]) + '</li>');
-        out.push(`<${lst[0]}>${it.join('')}</${lst[0]}>`); continue;
+        out.push((lst[0] === 'ol' && n0 ? `<ol start="${n0}">` : `<${lst[0]}>`) + it.join('') + `</${lst[0]}>`); continue;
       }
       const p = [inl(L[i++])];
       while (i < L.length && L[i].trim() && !special(L[i])) p.push(inl(L[i++]));
@@ -60,12 +60,17 @@
     return out.join('');
   }
 
-  function bulle(role, texte, pdf, err) {
+  function bulle(role, texte, pdf, err, img) {
     const m = $('msgs');
     const e = m.querySelector('.chat-empty'); if (e) e.remove();
     const d = document.createElement('div');
     d.className = 'msg ' + role + (err ? ' err' : '') + (role === 'ai' && !err ? ' md-output' : '');
     if (role === 'user' || err) d.textContent = texte; else d.innerHTML = md(texte);
+    if (img) {
+      const im = document.createElement('img'); im.src = img; im.alt = '';
+      im.style.cssText = 'display:block;max-width:240px;max-height:240px;border-radius:8px;margin-bottom:8px';
+      d.prepend(im);
+    }
     if (pdf) {
       const a = document.createElement('a');
       a.className = 'pdf-card';
@@ -107,7 +112,8 @@
     try {
       const d = await j(API + '/conversations/' + id);
       cid = id; $('msgs').innerHTML = '';
-      (d.messages || []).forEach((m) => bulle(m.role, m.contenu, m.pdf_path));
+      (d.messages || []).forEach((m) => bulle(m.role, m.contenu, m.pdf_path, false,
+        m.image_path ? API + '/img/' + encodeURIComponent(m.image_path.split('/').pop()) : null));
       if (!(d.messages || []).length) $('msgs').innerHTML = '<div class="chat-empty">Discussion vide.</div>';
       fichier = null; $('file').value = ''; chip();
       actif(true); await liste();
@@ -115,10 +121,10 @@
   }
 
   async function nouvelle() {
-    try {
-      const d = await j(API + '/conversations', {method:'POST', headers:{'Content-Type':'application/json'}, body:'{}'});
-      await ouvrir(d.id);
-    } catch (e) { showToast(e.message, 'error'); }
+    if (busy) return;
+    cid = null; fichier = null; $('file').value = ''; chip();
+    $('msgs').innerHTML = '<div class="chat-empty">Nouvelle discussion : écris ou joins un fichier.</div>';
+    actif(true); await liste(); $('inp').focus();
   }
 
   async function renommer(id, ancien) {
@@ -131,6 +137,7 @@
   }
 
   async function supprimer(id, titre) {
+    if (busy) { showToast('Attends la fin de la réponse', 'info'); return; }
     if (!confirm('Supprimer « ' + titre + ' » ? Les fichiers liés seront effacés.')) return;
     try {
       await j(API + '/conversations/' + id, {method:'DELETE'});
@@ -153,7 +160,8 @@
         busy = false; $('btn-send').disabled = false; return;
       }
     }
-    bulle('user', txt || ('📎 ' + f.name));
+    bulle('user', txt || ('📎 ' + f.name), null, false,
+      f && f.type.indexOf('image/') === 0 ? URL.createObjectURL(f) : null);
     const att = bulle('ai', '…');
     try {
       let opt;
