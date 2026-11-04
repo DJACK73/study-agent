@@ -29,5 +29,9 @@ def test_titre_sujet_prioritaire_et_tronque():
     assert _titre_pdf("# H", "S" * 80, "C") == "S" * 60
 
 
-def test_titre_ignore_h3():
-    assert _titre_pdf("### Sous-titre", None, "Conv") == "Conv"
+def test_titre_accepte_h3():
+    assert _titre_pdf("### Paludisme\ntexte", None, "Conv") == "Paludisme"
+
+
+def test_titre_ignore_h4():
+    assert _titre_pdf("#### Détail", None, "Conv") == "Conv"

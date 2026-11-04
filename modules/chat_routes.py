@@ -194,7 +194,7 @@ def telecharger_pdf(nom):
 
 
 _MSG_RIEN = "Aucune réponse à exporter pour l'instant."
-_TITRE_MD = re.compile(r"^#{1,2}[ \t]+(.+?)[ \t#]*$", re.M)
+_TITRE_MD = re.compile(r"^#{1,3}[ \t]+(.+?)[ \t#]*$", re.M)
 
 
 def _reponses_ia(messages):
