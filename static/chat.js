@@ -1,7 +1,8 @@
 (() => {
   const API = '/api/chat';
+  const MAX_OCTETS = 10 * 1024 * 1024;
   const $ = (id) => document.getElementById(id);
-  let cid = null, busy = false;
+  let cid = null, busy = false, fichier = null;
 
   async function j(url, opt) {
     const r = await fetch(url, opt);
@@ -15,12 +16,56 @@
     return isNaN(d) ? '' : d.toLocaleString('fr-FR', {day:'2-digit', month:'2-digit', hour:'2-digit', minute:'2-digit'});
   };
 
+  // ---- Markdown (échappe d'abord, puis balises : jamais de HTML brut du modèle)
+  const esc = (s) => s.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
+  const inl = (s) => s
+    .replace(/`([^`]+)`/g, '<code>$1</code>')
+    .replace(/\*\*(.+?)\*\*/g, '<strong>$1</strong>')
+    .replace(/(^|[^*\w])\*([^*\s][^*]*?)\*(?!\*)/g, '$1<em>$2</em>');
+  const RE_H = /^(#{1,4})\s+(.+?)\s*#*\s*$/, RE_UL = /^\s*[-*•]\s+(.*)$/, RE_OL = /^\s*\d+[.)]\s+(.*)$/;
+  const RE_ROW = /^\s*\|.*\|\s*$/, RE_SEP = /^\s*\|[\s:|-]+\|\s*$/;
+  const cells = (l) => l.trim().replace(/^\||\|$/g, '').split('|').map((c) => inl(c.trim()));
+  function md(src) {
+    const L = esc(src).split('\n'), out = [];
+    let i = 0;
+    const special = (l) => /^```/.test(l) || RE_H.test(l) || RE_UL.test(l) || RE_OL.test(l) || RE_ROW.test(l);
+    while (i < L.length) {
+      const l = L[i];
+      let m;
+      if (!l.trim()) { i++; continue; }
+      if (/^```/.test(l)) {
+        const b = []; i++;
+        while (i < L.length && !/^```/.test(L[i])) b.push(L[i++]);
+        i++; out.push('<pre><code>' + b.join('\n') + '</code></pre>'); continue;
+      }
+      if ((m = l.match(RE_H))) { const n = Math.max(2, m[1].length); out.push(`<h${n}>${inl(m[2])}</h${n}>`); i++; continue; }
+      if (RE_ROW.test(l) && i + 1 < L.length && RE_SEP.test(L[i + 1])) {
+        const head = cells(l), rows = [];
+        i += 2;
+        while (i < L.length && RE_ROW.test(L[i])) rows.push(cells(L[i++]));
+        out.push('<table><thead><tr>' + head.map((c) => `<th>${c}</th>`).join('') + '</tr></thead><tbody>' +
+          rows.map((r) => '<tr>' + r.map((c) => `<td>${c}</td>`).join('') + '</tr>').join('') + '</tbody></table>');
+        continue;
+      }
+      const lst = RE_UL.test(l) ? ['ul', RE_UL] : RE_OL.test(l) ? ['ol', RE_OL] : null;
+      if (lst) {
+        const it = [];
+        while (i < L.length && lst[1].test(L[i])) it.push('<li>' + inl(L[i++].match(lst[1])[1]) + '</li>');
+        out.push(`<${lst[0]}>${it.join('')}</${lst[0]}>`); continue;
+      }
+      const p = [inl(L[i++])];
+      while (i < L.length && L[i].trim() && !special(L[i])) p.push(inl(L[i++]));
+      out.push('<p>' + p.join('<br>') + '</p>');
+    }
+    return out.join('');
+  }
+
   function bulle(role, texte, pdf, err) {
     const m = $('msgs');
     const e = m.querySelector('.chat-empty'); if (e) e.remove();
     const d = document.createElement('div');
-    d.className = 'msg ' + role + (err ? ' err' : '');
-    if (role === 'user' || err) d.textContent = texte; else d.innerHTML = renderMarkdown(texte);
+    d.className = 'msg ' + role + (err ? ' err' : '') + (role === 'ai' && !err ? ' md-output' : '');
+    if (role === 'user' || err) d.textContent = texte; else d.innerHTML = md(texte);
     if (pdf) {
       const a = document.createElement('a');
       a.className = 'pdf-card';
@@ -38,7 +83,8 @@
     items.forEach((c) => {
       const row = document.createElement('div');
       row.className = 'conv-item' + (c.id === cid ? ' active' : '');
-      const t = document.createElement('span'); t.className = 'conv-titre'; t.textContent = c.titre; t.title = c.titre;
+      const t = document.createElement('span'); t.className = 'conv-titre'; t.textContent = c.titre; t.title = c.titre + ' (double-clic : renommer)';
+      t.ondblclick = (ev) => { ev.stopPropagation(); renommer(c.id, c.titre); };
       const dt = document.createElement('span'); dt.className = 'conv-date'; dt.textContent = heure(c.updated_at);
       const x = document.createElement('button'); x.className = 'conv-del'; x.textContent = '✕'; x.title = 'Supprimer';
       x.onclick = (ev) => { ev.stopPropagation(); supprimer(c.id, c.titre); };
@@ -47,7 +93,15 @@
     });
   }
 
-  function actif(on) { $('inp').disabled = !on; $('btn-send').disabled = !on; if (on) $('inp').focus(); }
+  function actif(on) { $('inp').disabled = !on; $('btn-send').disabled = !on; $('btn-file').disabled = !on; if (on) $('inp').focus(); }
+
+  function chip() {
+    const c = $('file-chip'); c.innerHTML = '';
+    if (!fichier) return;
+    const s = document.createElement('span'); s.className = 'chip'; s.textContent = '📎 ' + fichier.name + ' ✕'; s.title = 'Retirer';
+    s.onclick = () => { fichier = null; $('file').value = ''; chip(); };
+    c.appendChild(s);
+  }
 
   async function ouvrir(id) {
     try {
@@ -55,6 +109,7 @@
       cid = id; $('msgs').innerHTML = '';
       (d.messages || []).forEach((m) => bulle(m.role, m.contenu, m.pdf_path));
       if (!(d.messages || []).length) $('msgs').innerHTML = '<div class="chat-empty">Discussion vide.</div>';
+      fichier = null; $('file').value = ''; chip();
       actif(true); await liste();
     } catch (e) { showToast(e.message, 'error'); }
   }
@@ -63,6 +118,15 @@
     try {
       const d = await j(API + '/conversations', {method:'POST', headers:{'Content-Type':'application/json'}, body:'{}'});
       await ouvrir(d.id);
+    } catch (e) { showToast(e.message, 'error'); }
+  }
+
+  async function renommer(id, ancien) {
+    const n = prompt('Nouveau titre', ancien);
+    if (!n || !n.trim() || n.trim() === ancien) return;
+    try {
+      await j(API + '/conversations/' + id, {method:'PATCH', headers:{'Content-Type':'application/json'}, body: JSON.stringify({titre: n.trim()})});
+      await liste();
     } catch (e) { showToast(e.message, 'error'); }
   }
 
@@ -77,15 +141,21 @@
 
   async function envoyer() {
     const txt = $('inp').value.trim();
-    if (!txt || !cid || busy) return;
+    if ((!txt && !fichier) || !cid || busy) return;
     busy = true; $('btn-send').disabled = true; $('inp').value = '';
-    bulle('user', txt);
+    const f = fichier; fichier = null; $('file').value = ''; chip();
+    bulle('user', txt || ('📎 ' + f.name));
     const att = bulle('ai', '…');
     try {
-      const d = await j(API + '/conversations/' + cid + '/messages', {
-        method:'POST', headers:{'Content-Type':'application/json'},
-        body: JSON.stringify({message: txt, web: $('chk-web').checked})
-      });
+      let opt;
+      if (f) {
+        const fd = new FormData();
+        fd.append('message', txt); fd.append('web', $('chk-web').checked ? '1' : '0'); fd.append('fichier', f);
+        opt = {method:'POST', body: fd};
+      } else {
+        opt = {method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify({message: txt, web: $('chk-web').checked})};
+      }
+      const d = await j(API + '/conversations/' + cid + '/messages', opt);
       att.remove(); bulle('ai', d.reponse, d.pdf_path);
       if (d.web_statut && d.web_statut !== 'ok') showToast('Web : ' + d.web_statut, 'info');
       await liste();
@@ -95,6 +165,13 @@
 
   $('btn-new').onclick = nouvelle;
   $('btn-send').onclick = envoyer;
+  $('btn-file').onclick = () => $('file').click();
+  $('file').onchange = () => {
+    const f = $('file').files[0];
+    if (!f) return;
+    if (f.size > MAX_OCTETS) { showToast('Fichier > 10 Mo', 'error'); $('file').value = ''; return; }
+    fichier = f; chip();
+  };
   $('inp').addEventListener('keydown', (e) => { if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); envoyer(); } });
   liste().catch((e) => showToast(e.message, 'error'));
 })();
