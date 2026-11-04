@@ -93,7 +93,7 @@
     });
   }
 
-  function actif(on) { $('inp').disabled = !on; $('btn-send').disabled = !on; $('btn-file').disabled = !on; if (on) $('inp').focus(); }
+  function actif(on) { if (on) $('inp').focus(); }
 
   function chip() {
     const c = $('file-chip'); c.innerHTML = '';
@@ -141,9 +141,18 @@
 
   async function envoyer() {
     const txt = $('inp').value.trim();
-    if ((!txt && !fichier) || !cid || busy) return;
+    if ((!txt && !fichier) || busy) return;
     busy = true; $('btn-send').disabled = true; $('inp').value = '';
     const f = fichier; fichier = null; $('file').value = ''; chip();
+    if (!cid) {
+      try {
+        const d0 = await j(API + '/conversations', {method:'POST', headers:{'Content-Type':'application/json'}, body:'{}'});
+        cid = d0.id; $('msgs').innerHTML = '';
+      } catch (e) {
+        showToast(e.message, 'error'); $('inp').value = txt; fichier = f; chip();
+        busy = false; $('btn-send').disabled = false; return;
+      }
+    }
     bulle('user', txt || ('📎 ' + f.name));
     const att = bulle('ai', '…');
     try {
@@ -173,5 +182,17 @@
     fichier = f; chip();
   };
   $('inp').addEventListener('keydown', (e) => { if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); envoyer(); } });
-  liste().catch((e) => showToast(e.message, 'error'));
+  const prendre = (f) => {
+    if (!f) return;
+    if (f.size > MAX_OCTETS) { showToast('Fichier > 10 Mo', 'error'); return; }
+    fichier = f; chip();
+  };
+  $('inp').addEventListener('paste', (e) => {
+    const f = e.clipboardData && e.clipboardData.files && e.clipboardData.files[0];
+    if (f) { e.preventDefault(); prendre(f); }
+  });
+  const zone = document.querySelector('.chat-main');
+  zone.addEventListener('dragover', (e) => e.preventDefault());
+  zone.addEventListener('drop', (e) => { e.preventDefault(); prendre(e.dataTransfer.files[0]); });
+  liste().then(() => { $('inp').focus(); }).catch((e) => showToast(e.message, 'error'));
 })();
