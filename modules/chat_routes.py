@@ -121,13 +121,34 @@ def _ext_image(b: bytes) -> str | None:
     return None
 
 
+PDF_MAX_OCTETS = 10 * 1024 * 1024
+PDF_MAX_CAR = 8000
+
+
+def _texte_pdf(b: bytes) -> str:
+    """Texte d'un PDF (30 pages max, plafonné en caractères). Vide si scanné ou illisible."""
+    import io
+    try:
+        import pypdf
+        out, total = [], 0
+        for p in pypdf.PdfReader(io.BytesIO(b)).pages[:30]:
+            t = p.extract_text() or ""
+            out.append(t)
+            total += len(t)
+            if total >= PDF_MAX_CAR:
+                break
+        return "\n".join(out).strip()[:PDF_MAX_CAR]
+    except Exception:
+        return ""
+
+
 def _lire_requete():
     """Multipart (message, web, image) ou JSON (message, web)."""
     if request.mimetype == "multipart/form-data":
         f = request.form
         return ((f.get("message") or "").strip(),
                 (f.get("web") or "").lower() in ("1", "true", "on"),
-                request.files.get("image"))
+                request.files.get("image") or request.files.get("fichier"))
     d = request.get_json(silent=True) or {}
     return (d.get("message") or "").strip(), bool(d.get("web")), None
 
@@ -139,20 +160,32 @@ def envoyer(cid):
     if conv is None:
         return jsonify({"error": "Introuvable"}), 404
     msg, web, fichier = _lire_requete()
-    data = ext = None
+    data = ext = texte_pdf = nom_pdf = None
     if fichier:
         data = fichier.read()
-        ext = _ext_image(data)
-        if ext is None:
-            return jsonify({"error": "Image invalide (jpg, png, webp)"}), 400
-        msg = msg or "Explique cette image."
+        if data[:5] == b"%PDF-":
+            if len(data) > PDF_MAX_OCTETS:
+                return jsonify({"error": "PDF trop lourd (10 Mo max)"}), 413
+            texte_pdf = _texte_pdf(data)
+            if not texte_pdf:
+                return jsonify({"error": "PDF sans texte extractible (scanné ?) : envoie-le en image"}), 400
+            nom_pdf = Path(fichier.filename or "document.pdf").name[:60]
+            data = None
+            msg = msg or "Résume ce document."
+        else:
+            ext = _ext_image(data)
+            if ext is None:
+                return jsonify({"error": "Fichier invalide (jpg, png, webp, pdf)"}), 400
+            msg = msg or "Explique cette image."
     if not msg:
         return jsonify({"error": "Message vide"}), 400
-    demande = None if data else detecter_pdf(msg)
+    demande = None if (data or texte_pdf) else detecter_pdf(msg)
     journaliser_rate(msg, demande)
     if demande:
         return _repondre_pdf(cid, conv, msg, demande)
     texte = f"{_historique(conv['messages'])}\n\nÉtudiant : {msg}".strip()
+    if texte_pdf:
+        texte += f"\n\nDocument joint « {nom_pdf} » (extrait) :\n{texte_pdf}"
     sources, web_statut = [], None
     if web:
         from modules.web_context import enrichir
@@ -173,7 +206,7 @@ def envoyer(cid):
             img_path.unlink(missing_ok=True)
         return jsonify({"error": "Gemini indisponible"}), 502
     rel = f"uploads/{img_path.name}" if img_path else None
-    chat_db.ajouter_message(cid, "user", msg, image_path=rel)
+    chat_db.ajouter_message(cid, "user", f"📎 {nom_pdf} — {msg}" if texte_pdf else msg, image_path=rel)
     mid = chat_db.ajouter_message(cid, "ai", rep, sources_json=(json.dumps(sources, ensure_ascii=False) if sources else None))
     titre = conv["titre"]
     if not conv["messages"] and titre == "Nouvelle discussion":
