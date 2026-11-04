@@ -177,7 +177,7 @@ def envoyer(cid):
     mid = chat_db.ajouter_message(cid, "ai", rep, sources_json=(json.dumps(sources, ensure_ascii=False) if sources else None))
     titre = conv["titre"]
     if not conv["messages"] and titre == "Nouvelle discussion":
-        titre = msg[:50]
+        titre = _titre_conv(msg)
         chat_db.renommer(cid, titre)
     return jsonify({"reponse": rep, "message_id": mid, "titre": titre, "sources": sources,
                     "web_statut": web_statut, "image_path": rel, "pdf_path": None})
@@ -194,6 +194,16 @@ def telecharger_pdf(nom):
 
 
 _MSG_RIEN = "Aucune réponse à exporter pour l'instant."
+
+
+def _titre_conv(msg, n=50):
+    """Titre de conversation : espaces normalisés, coupé à un mot entier."""
+    msg = " ".join(msg.split())
+    if len(msg) <= n:
+        return msg
+    cut = msg[:n + 1]
+    cut = cut.rsplit(" ", 1)[0] if " " in cut else msg[:n]
+    return cut.rstrip(" ,;:.-")
 _TITRE_MD = re.compile(r"^#{1,3}[ \t]+(.+?)[ \t#]*$", re.M)
 
 
@@ -246,7 +256,7 @@ def _repondre_pdf(cid, conv, msg, d):
     mid = chat_db.ajouter_message(cid, "ai", rep, pdf_path=rel)
     titre = conv["titre"]
     if not conv["messages"] and titre == "Nouvelle discussion":
-        titre = msg[:50]
+        titre = _titre_conv(msg)
         chat_db.renommer(cid, titre)
     return jsonify({"reponse": rep, "message_id": mid, "titre": titre, "sources": [],
                     "web_statut": None, "image_path": None, "pdf_path": rel})

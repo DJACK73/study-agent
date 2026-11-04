@@ -35,3 +35,19 @@ def test_titre_accepte_h3():
 
 def test_titre_ignore_h4():
     assert _titre_pdf("#### Détail", None, "Conv") == "Conv"
+
+
+def test_titre_conv_court_et_espaces():
+    from modules.chat_routes import _titre_conv
+    assert _titre_conv("  a   b \n c ") == "a b c"
+
+
+def test_titre_conv_mot_entier():
+    from modules.chat_routes import _titre_conv
+    assert _titre_conv("mot " * 20) == "mot " * 11 + "mot"
+    assert _titre_conv("Définis le paludisme en 3 lignes avec un titre en Markdown") == "Définis le paludisme en 3 lignes avec un titre en"
+
+
+def test_titre_conv_sans_espace():
+    from modules.chat_routes import _titre_conv
+    assert _titre_conv("x" * 80) == "x" * 50
