@@ -190,6 +190,7 @@
 <div class="loading-overlay" id="loading-overlay">
   <div class="loader" style="width:40px;height:40px;border-width:3px;"></div>
   <div class="loading-text" id="loading-text">Gemini réfléchit...</div>
+  <button class="btn btn-ghost btn-sm" id="loading-cancel" style="display:none" onclick="annulerRequete()">✕ Annuler</button>
 </div>
 
 <script>
@@ -201,8 +202,11 @@ function showToast(msg, type='info', duration=3500) {
   document.getElementById('toast-container').appendChild(t);
   setTimeout(() => t.remove(), duration);
 }
-function showLoading(txt='Gemini réfléchit...') {
+let _ctrl = null;
+function annulerRequete() { if (_ctrl) _ctrl.abort(); }
+function showLoading(txt='Gemini réfléchit...', annulable=false) {
   document.getElementById('loading-text').textContent = txt;
+  document.getElementById('loading-cancel').style.display = annulable ? '' : 'none';
   document.getElementById('loading-overlay').classList.add('active');
 }
 function hideLoading() {
@@ -223,10 +227,12 @@ function renderMarkdown(text) {
     .replace(/\n/g,'<br>');
 }
 async function apiPost(url, body) {
+  _ctrl = new AbortController();
   const res = await fetch(url, {
     method:'POST',
     headers:{'Content-Type':'application/json'},
-    body:JSON.stringify(body)
+    body:JSON.stringify(body),
+    signal:_ctrl.signal
   });
   return res.json();
 }

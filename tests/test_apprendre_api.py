@@ -69,3 +69,11 @@ def test_img_temp_nom_unique(env):
         assert p1 != p2
         assert os.path.exists(p1) and os.path.exists(p2)
     assert list(inp.iterdir()) == []
+
+
+def test_bouton_annuler_present(env):
+    _, c, _ = env
+    html = c.get("/apprendre").get_data(as_text=True)
+    assert 'id="loading-cancel"' in html
+    assert html.count("annulerRequete()") >= 3
+    assert "showLoading('Gemini analyse ton cours...', true)" in html

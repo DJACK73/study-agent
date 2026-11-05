@@ -478,7 +478,7 @@ async function lancer() {
   // Efface l'état vide
   document.getElementById('result-panel').querySelector('div').style.display = 'none';
   hideAllResults();
-  showLoading('Gemini analyse ton cours...');
+  showLoading('Gemini analyse ton cours...', true);
 
   try {
     if (currentMode === 11) {
@@ -510,6 +510,10 @@ async function lancer() {
     showToast('Génération terminée !', 'success');
   } catch(e) {
     hideLoading();
+    if (e.name === 'AbortError') {
+      document.getElementById('result-panel').querySelector('div').style.display = '';
+      showToast('Annulé', 'info'); return;
+    }
     showToast('Erreur de connexion', 'error');
   }
 }
@@ -542,7 +546,7 @@ async function lancerPlan() {
   exposeContenu  = texte;
   exposeImageB64 = imageB64;
 
-  showLoading('Gemini construit le plan...');
+  showLoading('Gemini construit le plan...', true);
   const consignePerso = currentLongueur === 'perso'
     ? (document.getElementById('longueur-perso-texte').value.trim() || '')
     : '';
@@ -560,6 +564,7 @@ async function lancerPlan() {
     showResult('result-expose');
   } catch(e) {
     hideLoading();
+    if (e.name === 'AbortError') { showToast('Annulé', 'info'); return; }
     showToast('Erreur génération plan', 'error');
   }
 }
@@ -717,6 +722,7 @@ async function genererSection() {
         <span style="font-size:13px;color:var(--text2);">
           Génération de "${section.numero}. ${section.titre}"...
         </span>
+        <button class="btn btn-ghost btn-sm" style="margin-left:auto" onclick="annulerRequete()">✕ Annuler</button>
       </div>
     </div>`;
   container.appendChild(placeholder);
@@ -781,6 +787,12 @@ async function genererSection() {
       showToast('Exposé complet généré !', 'success');
     }
   } catch(e) {
+    if (e.name === 'AbortError') {
+      placeholder.remove();
+      document.getElementById('expose-next-btn').disabled = false;
+      document.getElementById('expose-next-btn').textContent = `▶ Générer "${section.titre}"`;
+      showToast('Annulé', 'info'); return;
+    }
     showToast('Erreur lors de la génération', 'error');
     document.getElementById('expose-next-btn').disabled  = false;
     document.getElementById('expose-next-btn').textContent = '🔄 Réessayer';
