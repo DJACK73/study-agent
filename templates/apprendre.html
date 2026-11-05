@@ -126,21 +126,6 @@
 .qcm-choice.correct { border-color: var(--green); background: rgba(61,220,132,.1); color: var(--green); }
 .qcm-choice.wrong   { border-color: var(--red);   background: rgba(255,107,107,.1); color: var(--red); }
 
-/* Mode conversation */
-.chat-messages { display: flex; flex-direction: column; gap: 16px; max-height: 400px; overflow-y: auto; padding: 4px; }
-.chat-msg { display: flex; gap: 12px; align-items: flex-start; }
-.chat-msg.user { flex-direction: row-reverse; }
-.chat-bubble {
-  max-width: 75%;
-  padding: 12px 16px;
-  border-radius: 16px;
-  font-size: 14px;
-  line-height: 1.6;
-}
-.chat-msg.ai .chat-bubble   { background: var(--bg3); border: 1px solid var(--border); border-top-left-radius: 4px; }
-.chat-msg.user .chat-bubble { background: linear-gradient(135deg,var(--accent),#5146e0); color: #fff; border-top-right-radius: 4px; }
-.chat-avatar { width: 32px; height: 32px; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 16px; flex-shrink: 0; background: var(--bg3); border: 1px solid var(--border); }
-
 /* Mode plan */
 .plan-step { display: flex; gap: 4px; align-items: center; margin-bottom: 8px; }
 .plan-step-num { width: 24px; height: 24px; background: var(--accent); border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 11px; font-weight: 700; flex-shrink: 0; }
@@ -201,11 +186,6 @@
           <span class="mode-icon">🎓</span>
           <span class="mode-name">Mode examen</span>
           <span class="mode-desc">30 points, corrigé</span>
-        </div>
-        <div class="mode-card" onclick="selectMode(10,this)" data-mode="10">
-          <span class="mode-icon">💬</span>
-          <span class="mode-name">Conversation</span>
-          <span class="mode-desc">Poser des questions</span>
         </div>
         <div class="mode-card" onclick="selectMode(11,this)" data-mode="11">
           <span class="mode-icon">✍️</span>
@@ -444,20 +424,6 @@
       </div>
     </div>
 
-    <!-- Conversation (mode 10) -->
-    <div class="result-box" id="result-conversation">
-      <div class="result-header">
-        <span>💬</span>
-        <span style="font-size:14px;font-weight:600;flex:1;">Conversation</span>
-      </div>
-      <div class="result-content">
-        <div class="chat-messages" id="chat-messages"></div>
-        <div style="display:flex;gap:10px;margin-top:16px;">
-          <input class="input" id="chat-input" placeholder="Pose ta question..." onkeydown="if(event.key==='Enter')sendChat()"/>
-          <button class="btn btn-primary" onclick="sendChat()">Envoyer</button>
-        </div>
-      </div>
-    </div>
   </div>
 </div>
 {% endblock %}
@@ -481,8 +447,6 @@ function selectLongueur(longueur, el) {
 let fcCards = [], fcIndex = 0, fcScore = 0, fcFlipped = false;
 let qcmData = [], qcmIndex = 0, qcmScore = 0, qcmAnswered = [];
 
-// Données conversation
-let chatContenu = '', chatImageB64 = '';
 
 function selectMode(mode, el) {
   currentMode = mode;
@@ -527,7 +491,7 @@ function removeImage() {
 }
 
 function hideAllResults() {
-  ['result-expose','result-text','result-flashcards','result-qcm','result-conversation']
+  ['result-expose','result-text','result-flashcards','result-qcm']
     .forEach(id => document.getElementById(id).style.display = 'none');
 }
 
@@ -553,15 +517,6 @@ async function lancer() {
       hideLoading();
       if (data.error) { showToast(data.error, 'error'); return; }
       showTextResult(data.resultat, '✍️', 'Exposé depuis ton plan');
-
-    } else if (currentMode === 10) {
-      // Mode conversation — juste initialiser
-      hideLoading();
-      chatContenu   = texte;
-      chatImageB64  = imageB64;
-      document.getElementById('chat-messages').innerHTML = '';
-      addChatMsg('ai', '👋 Cours chargé ! Pose-moi tes questions sur ce contenu.');
-      showResult('result-conversation');
 
     } else {
       const data = await apiPost('/api/generer', {
@@ -993,38 +948,6 @@ function answerQcm(i) {
 
 function nextQcm() { if (qcmIndex < qcmData.length-1) { qcmIndex++; updateQcm(); } }
 function prevQcm() { if (qcmIndex > 0) { qcmIndex--; updateQcm(); } }
-
-// ── Conversation ──────────────────────────────────────────
-function addChatMsg(role, text) {
-  const msgs = document.getElementById('chat-messages');
-  const div  = document.createElement('div');
-  div.className = `chat-msg ${role}`;
-  div.innerHTML = `
-    <div class="chat-avatar">${role === 'ai' ? '🧠' : '👤'}</div>
-    <div class="chat-bubble">${role === 'ai' ? renderMarkdown(text) : text}</div>
-  `;
-  msgs.appendChild(div);
-  msgs.scrollTop = msgs.scrollHeight;
-}
-
-async function sendChat() {
-  const input = document.getElementById('chat-input');
-  const q = input.value.trim();
-  if (!q) return;
-  input.value = '';
-  addChatMsg('user', q);
-  showLoading('Gemini réfléchit...');
-  try {
-    const data = await apiPost('/api/conversation', {
-      contenu: chatContenu, question: q, image_b64: chatImageB64
-    });
-    hideLoading();
-    addChatMsg('ai', data.reponse || data.error || 'Erreur');
-  } catch(e) {
-    hideLoading();
-    addChatMsg('ai', '❌ Erreur de connexion.');
-  }
-}
 
 // ── Sélecteur de modèle PDF ───────────────────────────────
 let _pdfCallback = null;  // fonction appelée après choix du modèle

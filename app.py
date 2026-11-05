@@ -11,7 +11,7 @@ from modules.database import (init_db, save_session, save_cards,
                                record_review, get_stats,
                                get_maitrise_par_sujet)
 from modules.spacedrepetition import sm2
-from modules.generator import (generer, generer_avec_plan, generer_conversation,
+from modules.generator import (generer, generer_avec_plan,
                                proposer_plan, generer_section)
 
 app = Flask(__name__)
@@ -144,31 +144,6 @@ def api_generer_plan():
             resultat = generer_avec_plan(texte, plan, est_image=False)
 
         return jsonify({"resultat": resultat})
-    except Exception as e:
-        return jsonify({"error": str(e)}), 500
-
-
-@app.route("/api/conversation", methods=["POST"])
-def api_conversation():
-    data      = request.get_json(force=True)
-    contenu   = data.get("contenu", "").strip()
-    question  = data.get("question", "").strip()
-    image_b64 = data.get("image_b64", "")
-
-    if not question:
-        return jsonify({"error": "Question vide"}), 400
-
-    try:
-        if image_b64:
-            img_data = base64.b64decode(image_b64)
-            img_path = os.path.join(INPUT_DIR, "upload_temp.jpg")
-            with open(img_path, "wb") as f:
-                f.write(img_data)
-            rep = generer_conversation(img_path, question, est_image=True)
-        else:
-            rep = generer_conversation(contenu, question, est_image=False)
-
-        return jsonify({"reponse": rep})
     except Exception as e:
         return jsonify({"error": str(e)}), 500
 
