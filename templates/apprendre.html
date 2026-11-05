@@ -490,6 +490,10 @@ async function lancer() {
       if (data.error) { showToast(data.error, 'error'); return; }
       showTextResult(data.resultat, '✍️', 'Exposé depuis ton plan');
 
+    } else if (currentMode === 2) {
+      hideLoading();
+      await lancerPlan();
+      return;
     } else {
       const data = await apiPost('/api/generer', {
         mode: currentMode, texte, image_b64: imageB64, contexte,
@@ -499,16 +503,9 @@ async function lancer() {
 
       if (currentMode === 3) renderFlashcards(data.resultat);
       else if (currentMode === 4) renderQcm(data.resultat);
-      else if (currentMode === 2) {
-        // Mode 2 → Option C (plan interactif)
-        hideLoading();
-        await lancerPlan();
-        return;
-      }
       else showTextResult(data.resultat,
-        ({2:'📄',3:'🃏',4:'✅',9:'🎓'})[currentMode],
-        ({2:'Exposé',3:'Flashcards',4:'QCM',9:'Examen'})[currentMode]);
-      afficherSources(data);
+        '🎓',
+        'Examen');
     }
     showToast('Génération terminée !', 'success');
   } catch(e) {
@@ -517,30 +514,6 @@ async function lancer() {
   }
 }
 
-function afficherSources(data) {
-  const old = document.getElementById('web-sources'); if (old) old.remove();
-  if (!data || !data.web_statut) return;
-  const box = document.createElement('div');
-  box.id = 'web-sources';
-  box.style.cssText = 'margin-top:16px;font-size:13px;color:var(--text3);';
-  if (data.web_statut !== 'ok') {
-    const msg = {plafond:'Plafond de recherches atteint', aucun:'Aucune source trouvée', indisponible:'Recherche indisponible'}[data.web_statut] || 'Recherche indisponible';
-    box.textContent = msg + ', réponse sans sources.';
-  } else {
-    const t = document.createElement('div'); t.textContent = 'Sources web'; t.style.fontWeight = '700';
-    box.appendChild(t);
-    data.sources.forEach((s, i) => {
-      const row = document.createElement('div');
-      const a = document.createElement('a');
-      a.textContent = '[' + (i + 1) + '] ' + s.titre;
-      if (/^https?:\/\//.test(s.url)) { a.href = s.url; a.target = '_blank'; a.rel = 'noopener noreferrer'; }
-      row.appendChild(a);
-      row.appendChild(document.createTextNode(' (' + (s.date || 'date inconnue') + ')'));
-      box.appendChild(row);
-    });
-  }
-  document.getElementById('result-content').insertAdjacentElement('afterend', box);
-}
 
 function showResult(id) {
   document.getElementById(id).style.display = 'block';

@@ -72,10 +72,36 @@ def stats():
 # API — Generation Gemini
 # ─────────────────────────────────────────────────────────────────────────────
 
+import tempfile
+from contextlib import contextmanager
+
+MODES_API = {3, 4, 9}
+
+
+@contextmanager
+def _img_temp(octets, ext="jpg"):
+    """Fichier image temporaire unique, supprime a la sortie."""
+    fd, path = tempfile.mkstemp(suffix="." + ext, dir=INPUT_DIR)
+    try:
+        with os.fdopen(fd, "wb") as f:
+            f.write(octets)
+        yield path
+    finally:
+        try:
+            os.remove(path)
+        except OSError:
+            pass
+
+
 @app.route("/api/generer", methods=["POST"])
 def api_generer():
     data       = request.get_json(force=True)
-    mode       = int(data.get("mode", 1))
+    try:
+        mode = int(data.get("mode", 0))
+    except (TypeError, ValueError):
+        mode = 0
+    if mode not in MODES_API:
+        return jsonify({"error": "Mode invalide"}), 400
     texte      = data.get("texte", "").strip()
     image_b64  = data.get("image_b64", "")
     contexte   = data.get("contexte", "")
@@ -83,14 +109,10 @@ def api_generer():
     if not texte and not image_b64:
         return jsonify({"error": "Contenu vide"}), 400
 
-    web_statut, sources = None, []
     try:
         if image_b64:
-            img_data = base64.b64decode(image_b64)
-            img_path = os.path.join(INPUT_DIR, "upload_temp.jpg")
-            with open(img_path, "wb") as f:
-                f.write(img_data)
-            resultat  = generer(img_path, mode, est_image=True, contexte=contexte)
+            with _img_temp(base64.b64decode(image_b64)) as img_path:
+                resultat = generer(img_path, mode, est_image=True, contexte=contexte)
             est_image = True
             contenu_id = "cours (image)"
         else:
@@ -113,8 +135,7 @@ def api_generer():
             except Exception as e:
                 print(f"Sauvegarde SQLite : {e}")
 
-        return jsonify({"resultat": resultat, "mode": mode,
-                        "sources": sources, "web_statut": web_statut})
+        return jsonify({"resultat": resultat, "mode": mode})
 
     except Exception as e:
         return jsonify({"error": str(e)}), 500
@@ -132,11 +153,8 @@ def api_generer_plan():
 
     try:
         if image_b64:
-            img_data = base64.b64decode(image_b64)
-            img_path = os.path.join(INPUT_DIR, "upload_temp.jpg")
-            with open(img_path, "wb") as f:
-                f.write(img_data)
-            resultat = generer_avec_plan(img_path, plan, est_image=True)
+            with _img_temp(base64.b64decode(image_b64)) as img_path:
+                resultat = generer_avec_plan(img_path, plan, est_image=True)
         else:
             resultat = generer_avec_plan(texte, plan, est_image=False)
 
@@ -247,15 +265,12 @@ def api_expose_section():
 
     try:
         if image_b64:
-            img_data = base64.b64decode(image_b64)
-            img_path = os.path.join(INPUT_DIR, "upload_temp.jpg")
-            with open(img_path, "wb") as f:
-                f.write(img_data)
-            resultat = generer_section(
-                sujet, plan, index, contenu_precedent,
-                est_image=True, contenu=img_path,
-                longueur=longueur, consigne_perso=consigne_perso
-            )
+            with _img_temp(base64.b64decode(image_b64)) as img_path:
+                resultat = generer_section(
+                    sujet, plan, index, contenu_precedent,
+                    est_image=True, contenu=img_path,
+                    longueur=longueur, consigne_perso=consigne_perso
+                )
         else:
             resultat = generer_section(
                 sujet, plan, index, contenu_precedent,
@@ -457,13 +472,12 @@ Réponds UNIQUEMENT avec un tableau JSON valide, sans texte avant ni après :
             else:
                 # Image — sauvegarder et envoyer à Gemini Vision
                 ext = fichier_nom.rsplit(".", 1)[-1].lower() if "." in fichier_nom else "jpg"
-                img_path = os.path.join(INPUT_DIR, f"cours_upload.{ext}")
-                with open(img_path, "wb") as f:
-                    f.write(fichier_bytes)
+                if ext not in {"jpg", "jpeg", "png", "webp"}:
+                    ext = "jpg"
                 prompt = f"Voici une image de cours. {prompt_fin}"
-                # Utiliser generer() mode image comme dans api_generer
                 from modules.generator import generer
-                raw = generer(img_path, mode=1, est_image=True, contexte=prompt)
+                with _img_temp(fichier_bytes, ext) as img_path:
+                    raw = generer(img_path, mode=1, est_image=True, contexte=prompt)
         elif texte:
             prompt = f"{prompt_fin}\n\nCours :\n{texte[:6000]}"
             raw = analyser_texte(texte[:6000], prompt)

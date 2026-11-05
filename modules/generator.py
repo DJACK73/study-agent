@@ -48,37 +48,6 @@ Format JSON uniquement, rien d'autre :
 [{"question":"...","choix":["A)...","B)...","C)...","D)..."],
 "reponse":"A","explication":"..."}]"""),
 
-    5: _prompt("""Analyse ce contenu et génère un plan de révision intelligent.
-- Thèmes identifiés avec niveau de difficulté réel
-- Ordre de révision optimal avec justification  
-- Temps estimé réaliste par thème
-- Points critiques à maîtriser absolument
-- Stratégie adaptée au type de contenu
-- Questions types susceptibles d'être posées à l'examen"""),
-
-    6: _prompt("""Analyse ce contenu et génère un plan d'exposé optimal.
-Adapte la structure au type de sujet détecté.
-Pour chaque section indique : titre, points à développer, 
-définitions clés, exemples à utiliser.
-Justifie brièvement tes choix de structure."""),
-
-    7: _prompt("""Génère un résumé en exactement 3 niveaux :
-NIVEAU 1 — 3 lignes : l'essentiel absolu
-NIVEAU 2 — 10 lignes : les points importants  
-NIVEAU 3 — complet : tout ce qu'il faut savoir
-Sépare clairement les 3 niveaux."""),
-
-    8: _prompt("""Génère une mind map textuelle de ce contenu.
-Format :
-[SUJET CENTRAL]
-├── Thème 1
-│   ├── Sous-thème 1.1
-│   └── Sous-thème 1.2
-├── Thème 2
-│   ├── Sous-thème 2.1
-│   └── Sous-thème 2.2
-Identifie toi-même les thèmes selon le contenu."""),
-
     9: _prompt("""Mode examen. Génère un examen complet sur ce contenu :
 - 5 QCM (2 points chacun)
 - 2 questions courtes (5 points chacune)  
@@ -111,25 +80,6 @@ Adapte la profondeur de chaque section selon son importance réelle."""
     else:
         return analyser_texte(contenu, prompt)
 
-def generer_conversation(contenu: str, question: str,
-                         est_image: bool = False) -> str:
-    prompt = f"""{SYSTEM_PROMPT}
-
-Voici le contenu du cours :
----
-{contenu}
----
-
-L'étudiant pose cette question : {question}
-
-Réponds directement et précisément à cette question
-en te basant sur le contenu fourni.
-Si la question dépasse le contenu, indique-le clairement."""
-    if est_image:
-        return analyser_image(contenu,
-            f"Question sur ce cours : {question}\nRéponds précisément.")
-    else:
-        return analyser_texte(contenu, prompt)
 
 
 def proposer_plan(sujet: str, contexte: str = "", longueur: str = "complet",
