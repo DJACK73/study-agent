@@ -182,7 +182,6 @@
 
   $('btn-new').onclick = nouvelle;
   $('btn-send').onclick = envoyer;
-  $('btn-file').onclick = () => $('file').click();
   $('file').onchange = () => {
     const f = $('file').files[0];
     if (!f) return;
