@@ -94,9 +94,6 @@ def api_generer():
             est_image = True
             contenu_id = "cours (image)"
         else:
-            if mode == 1 and data.get("web"):
-                from modules.web_context import enrichir
-                contexte, sources, web_statut = enrichir(texte, contexte, medical=True)
             resultat  = generer(texte, mode, est_image=False, contexte=contexte)
             est_image = False
             contenu_id = texte[:60]
