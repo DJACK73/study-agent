@@ -38,6 +38,17 @@
     .sidebar-footer{margin-top:auto;padding:16px 24px 0;border-top:1px solid var(--border);}
     .sidebar-footer .version{font-size:11px;color:var(--text3);font-family:'JetBrains Mono',monospace;}
 
+    /* Sidebar repliable */
+    body.nav-mini{--sidebar-w:64px}
+    .nav-mini .sidebar-logo{padding:20px 0 16px;text-align:center}
+    .nav-mini .logo-icon{margin:0 auto 4px}
+    .nav-mini .logo-name,.nav-mini .logo-sub,.nav-mini .nav-label,.nav-mini .sidebar-footer .version,.nav-mini .nav-badge{display:none}
+    .nav-mini .nav-item{font-size:0;gap:0;justify-content:center;padding:10px 0}
+    .nav-mini .nav-icon{font-size:18px}
+    .nav-mini .sidebar-footer{padding:16px 0 0;text-align:center}
+    #nav-toggle{background:none;border:1px solid var(--border);color:var(--text2);border-radius:8px;padding:4px 10px;cursor:pointer;font-size:13px}
+    #nav-toggle:hover{background:var(--bg3);color:var(--text)}
+
     /* Main */
     .main{margin-left:var(--sidebar-w);flex:1;min-height:100vh;display:flex;flex-direction:column;}
     .topbar{height:64px;background:rgba(13,15,20,.8);backdrop-filter:blur(12px);border-bottom:1px solid var(--border);display:flex;align-items:center;padding:0 32px;position:sticky;top:0;z-index:50;gap:16px;}
@@ -130,7 +141,7 @@
     {% block extra_style %}{% endblock %}
   </style>
 </head>
-<body>
+<body class="nav-mini">
 
 <aside class="sidebar">
   <div class="sidebar-logo">
@@ -161,6 +172,7 @@
   </nav>
   <div class="sidebar-footer">
     <div class="version">Propulsé par Gemini</div>
+    <button id="nav-toggle" title="Réduire / agrandir le menu">«</button>
   </div>
 </aside>
 
@@ -218,6 +230,18 @@ async function apiPost(url, body) {
   });
   return res.json();
 }
+</script>
+<script>
+(function () {
+  const b = document.body, t = document.getElementById('nav-toggle');
+  document.querySelectorAll('.nav-item').forEach((a) => { a.title = a.textContent.replace(/\s+/g, ' ').trim(); });
+  function maj() { t.textContent = b.classList.contains('nav-mini') ? '»' : '«'; }
+  t.onclick = () => {
+    b.classList.toggle('nav-mini');
+    maj();
+  };
+  maj();
+})();
 </script>
 {% block scripts %}{% endblock %}
 </body>
