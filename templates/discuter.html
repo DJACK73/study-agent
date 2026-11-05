@@ -27,17 +27,33 @@
 .msg pre{background:var(--bg);padding:10px;border-radius:8px;overflow-x:auto;margin:8px 0;}
 .msg.ai h2{font-size:16px;margin:10px 0 6px;}.msg.ai h3,.msg.ai h4{font-size:14px;margin:8px 0 4px;}
 .chip{background:var(--bg3);border:1px solid var(--border);border-radius:99px;padding:2px 10px;cursor:pointer;}
+.chat-wrap.collapsed{grid-template-columns:1fr;gap:0;}
+.chat-wrap.collapsed .conv-list{display:none;}
+.chat-bar{padding:8px 12px;border-bottom:1px solid var(--border);}
+.plus-wrap{position:relative;}
+.plus-menu{position:absolute;bottom:calc(100% + 8px);left:0;min-width:170px;background:var(--bg2);border:1px solid var(--border);border-radius:var(--radius);padding:6px;display:flex;flex-direction:column;gap:2px;z-index:50;box-shadow:0 8px 24px rgba(0,0,0,.4);}
+.plus-menu[hidden]{display:none;}
+.plus-menu button{background:none;border:none;color:var(--text2);text-align:left;padding:9px 12px;border-radius:8px;cursor:pointer;font-size:13px;}
+.plus-menu button:hover{background:var(--bg3);color:var(--text);}
 {% endblock %}
 {% block content %}
-<div class="chat-wrap">
+<div class="chat-wrap collapsed">
   <aside class="conv-list">
     <button class="btn btn-primary btn-sm" id="btn-new">＋ Nouvelle discussion</button>
     <div id="conv-items"></div>
   </aside>
   <section class="chat-main">
+    <div class="chat-bar"><button class="btn btn-ghost btn-sm" id="btn-toggle" title="Afficher / masquer les discussions">☰</button></div>
     <div id="msgs"><div class="chat-empty">Choisis une discussion ou crée-en une.</div></div>
     <div class="chat-input">
-      <button class="btn btn-ghost" id="btn-file" title="Joindre une image ou un PDF (ou Ctrl+V, glisser-déposer)" style="font-size:18px">📎</button>
+      <button id="btn-file" hidden></button>
+      <div class="plus-wrap">
+        <button class="btn btn-ghost" id="btn-plus" title="Joindre (ou Ctrl+V, glisser-déposer)" style="font-size:20px;line-height:1">＋</button>
+        <div class="plus-menu" id="plus-menu" hidden>
+          <button type="button" data-accept="image/jpeg,image/png,image/webp">🖼️ Image</button>
+          <button type="button" data-accept="application/pdf">📄 PDF</button>
+        </div>
+      </div>
       <input type="file" id="file" accept="image/jpeg,image/png,image/webp,application/pdf" hidden>
       <textarea class="textarea" id="inp" placeholder="Pose ta question… (Entrée = envoyer, Maj+Entrée = ligne)"></textarea>
       <button class="btn btn-primary" id="btn-send">Envoyer</button>
@@ -46,4 +62,17 @@
   </section>
 </div>
 {% endblock %}
-{% block scripts %}<script src="{{ url_for('static', filename='chat.js') }}"></script>{% endblock %}
+{% block scripts %}<script src="{{ url_for('static', filename='chat.js') }}"></script>
+<script>
+(function () {
+  const $ = (id) => document.getElementById(id);
+  const wrap = document.querySelector('.chat-wrap');
+  $('btn-toggle').onclick = () => wrap.classList.toggle('collapsed');
+  const menu = $('plus-menu');
+  $('btn-plus').onclick = (e) => { e.stopPropagation(); menu.hidden = !menu.hidden; };
+  document.addEventListener('click', () => { menu.hidden = true; });
+  document.querySelectorAll('[data-accept]').forEach((b) => b.onclick = () => {
+    $('file').accept = b.dataset.accept; menu.hidden = true; $('file').click();
+  });
+})();
+</script>{% endblock %}
