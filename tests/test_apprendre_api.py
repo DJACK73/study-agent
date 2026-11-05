@@ -77,3 +77,27 @@ def test_bouton_annuler_present(env):
     assert 'id="loading-cancel"' in html
     assert html.count("annulerRequete()") >= 3
     assert "showLoading('Gemini analyse ton cours...', true)" in html
+
+
+class _Err(Exception):
+    def __init__(self, code):
+        self.code = code
+
+
+@pytest.mark.parametrize("code,attendu", [(503, 503), (429, 429), (500, 500)])
+def test_erreur_gemini_code(env, monkeypatch, code, attendu):
+    appmod, c, _ = env
+
+    def boom(*a, **k):
+        raise _Err(code)
+
+    monkeypatch.setattr(appmod, "generer", boom)
+    r = c.post("/api/generer", json={"mode": 4, "texte": "x"})
+    assert r.status_code == attendu
+    assert r.get_json()["error"]
+
+
+def test_prompts_nettoyes():
+    from modules import generator
+    assert 2 not in generator.MODES and 1 in generator.MODES
+    assert "sans jamais écrire" in generator.SYSTEM_PROMPT

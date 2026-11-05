@@ -73,9 +73,22 @@ def stats():
 # ─────────────────────────────────────────────────────────────────────────────
 
 import tempfile
+import logging
 from contextlib import contextmanager
 
 MODES_API = {3, 4, 9}
+
+
+def _erreur(e):
+    """429/503 Gemini -> meme code + message clair ; reste -> 500 journalise."""
+    code = getattr(e, "code", None)
+    if code in (429, 503):
+        logging.warning("Gemini indisponible apres retries: %s", code)
+        msg = ("Quota Gemini atteint, reessaie plus tard" if code == 429
+               else "Gemini est surcharge, reessaie dans un moment")
+        return jsonify({"error": msg}), code
+    logging.exception("Erreur route API")
+    return jsonify({"error": str(e)}), 500
 
 
 @contextmanager
@@ -138,7 +151,7 @@ def api_generer():
         return jsonify({"resultat": resultat, "mode": mode})
 
     except Exception as e:
-        return jsonify({"error": str(e)}), 500
+        return _erreur(e)
 
 
 @app.route("/api/generer_plan", methods=["POST"])
@@ -160,7 +173,7 @@ def api_generer_plan():
 
         return jsonify({"resultat": resultat})
     except Exception as e:
-        return jsonify({"error": str(e)}), 500
+        return _erreur(e)
 
 
 # ─────────────────────────────────────────────────────────────────────────────
@@ -241,7 +254,7 @@ def api_expose_plan():
         plan = json.loads(txt)
         return jsonify({"plan": plan})
     except Exception as e:
-        return jsonify({"error": str(e)}), 500
+        return _erreur(e)
 
 
 @app.route("/api/expose/section", methods=["POST"])
@@ -279,7 +292,7 @@ def api_expose_section():
             )
         return jsonify({"section": resultat, "index": index})
     except Exception as e:
-        return jsonify({"error": str(e)}), 500
+        return _erreur(e)
 
 
 # ─────────────────────────────────────────────────────────────────────────────
@@ -329,7 +342,7 @@ Réponds UNIQUEMENT en JSON, sans texte avant ou après :
         questions = json.loads(txt)
         return jsonify({"questions": questions})
     except Exception as e:
-        return jsonify({"error": str(e)}), 500
+        return _erreur(e)
 
 
 @app.route("/api/expose/corriger", methods=["POST"])
@@ -406,7 +419,7 @@ def api_export_pdf():
             download_name=f"{titre.replace(' ','_')}_{modele}.pdf"
         )
     except Exception as e:
-        return jsonify({"error": str(e)}), 500
+        return _erreur(e)
 
 
 @app.route("/api/export/flashcards", methods=["POST"])
@@ -425,7 +438,7 @@ def api_export_flashcards():
             download_name=f"flashcards_{titre.replace(' ','_')}.pdf"
         )
     except Exception as e:
-        return jsonify({"error": str(e)}), 500
+        return _erreur(e)
 
 
 # ─────────────────────────────────────────────────────────────────────────────
@@ -500,7 +513,7 @@ Réponds UNIQUEMENT avec un tableau JSON valide, sans texte avant ni après :
         save_cards(session_id, cards)
         return jsonify({"cards": cards, "session_id": session_id})
     except Exception as e:
-        return jsonify({"error": str(e)}), 500
+        return _erreur(e)
 
 
 # ─────────────────────────────────────────────────────────────────────────────
@@ -546,7 +559,7 @@ Réponds UNIQUEMENT en JSON :
         questions = json.loads(match.group()) if match else []
         return jsonify({"questions": questions})
     except Exception as e:
-        return jsonify({"error": str(e)}), 500
+        return _erreur(e)
 
 
 # ─────────────────────────────────────────────────────────────────────────────

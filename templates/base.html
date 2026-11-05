@@ -234,7 +234,8 @@ async function apiPost(url, body) {
     body:JSON.stringify(body),
     signal:_ctrl.signal
   });
-  return res.json();
+  try { return await res.json(); }
+  catch (e) { return { error: 'Erreur serveur (' + res.status + ')' }; }
 }
 </script>
 <script>

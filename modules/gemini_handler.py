@@ -1,6 +1,6 @@
 from google import genai
 from google.genai import types
-import os, sys, time
+import os, sys, time, logging
 sys.path.append(os.path.dirname(os.path.dirname(__file__)))
 from config import GEMINI_API_KEY, MODEL_NAME, MODEL_SMART
 
@@ -25,6 +25,8 @@ def _appeler(contents) -> str:
             if getattr(e, "code", None) not in _RETRY:
                 raise
             derniere = e
+            logging.warning("gemini retry %d/%d code=%s modele=%s cle=%d",
+                            i + 1, n, getattr(e, "code", None), modele, i % len(_CLIENTS) + 1)
     raise derniere
 
 
