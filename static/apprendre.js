@@ -138,7 +138,7 @@ function showResult(id) {
   document.getElementById(id).scrollIntoView({ behavior: 'smooth', block: 'start' });
 }
 
-const RE_CORRIGE = /^[ \t]*-{2,}\s*corrig[ée]\s*-{2,}[ \t]*$/im;
+const RE_CORRIGE = /^[ \t*_#]*-{2,}\s*corrig[ée]\s*-{2,}[ \t*_]*$/im;
 function showTextResult(txt, icon, title) {
   const old = document.getElementById('btn-corrige');
   if (old) old.remove();
@@ -634,7 +634,7 @@ async function choisirModele(modele) {
 
 // ── Export PDF texte (tous modes sauf flashcards) ─────────
 function exportPDF() {
-  const texte = document.getElementById('result-content').innerText;
+  const texte = document.getElementById('result-content').textContent;
   const titre = document.getElementById('result-title').textContent;
   ouvrirSelecteurPDF(async (modele) => {
     showLoading('Génération du PDF...');
