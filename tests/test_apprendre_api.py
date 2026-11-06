@@ -135,3 +135,18 @@ def test_apprendre_sans_compteur_en_dur(env):
     _, c, _ = env
     html = c.get("/apprendre").get_data(as_text=True)
     assert "5 modes d'apprentissage" not in html
+
+
+def test_colonne_gauche_sticky_et_sidebar_sans_modele(env):
+    _, c, _ = env
+    html = c.get("/apprendre").get_data(as_text=True)
+    assert "col-gauche" in html and "position:sticky" in html
+    assert "gemini-" not in html.split('class="logo-sub"')[1][:80]
+
+
+def test_longueur_et_plan_repliables(env):
+    _, c, _ = env
+    html = c.get("/apprendre").get_data(as_text=True)
+    assert '<details class="card acc" id="longueur-card"' in html
+    assert '<details class="card acc" id="plan-card"' in html
+    assert html.count("<details") == html.count("</details>")

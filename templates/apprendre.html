@@ -6,6 +6,8 @@
 {% block extra_style %}
 .grid-2.apprendre-grid{grid-template-columns:5fr 7fr;}
 .apprendre-grid > *{min-width:0;}
+.col-gauche{position:sticky;top:80px;max-height:calc(100vh - 100px);overflow-y:auto;padding-right:4px;}
+@media(max-width:900px){.col-gauche{position:static;max-height:none;overflow:visible;}}
 @media(max-width:900px){.grid-2.apprendre-grid{grid-template-columns:1fr;}}
 .acc > summary{cursor:pointer;list-style:none;display:flex;align-items:center;font-size:15px;font-weight:700;}
 .acc > summary::-webkit-details-marker{display:none;}
@@ -145,7 +147,7 @@
 <div class="grid-2 apprendre-grid" style="gap:24px;align-items:start;">
 
   <!-- Panneau gauche : configuration -->
-  <div style="display:flex;flex-direction:column;gap:20px;">
+  <div class="col-gauche" style="display:flex;flex-direction:column;gap:20px;">
 
     <!-- Choix du mode -->
     <details class="card acc" id="acc-mode">
@@ -219,8 +221,8 @@
     </details>
 
     <!-- Longueur exposé (mode 2 uniquement) -->
-    <div class="card" id="longueur-card" style="display:none;">
-      <div style="font-size:15px;font-weight:700;margin-bottom:12px;">4. Longueur de l'exposé</div>
+    <details class="card acc" id="longueur-card" style="display:none;">
+      <summary>4. Longueur de l'exposé <span class="sum" id="sum-long">Moyen</span></summary>
       <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:8px;">
         <div class="mode-card" onclick="selectLongueur('court',this)" data-longueur="court">
           <span class="mode-icon">📄</span>
@@ -261,14 +263,14 @@
           Gemini suivra exactement ces instructions pour le plan et chaque section.
         </div>
       </div>
-    </div>
+    </details>
 
     <!-- Plan perso (mode 11 uniquement) -->
-    <div class="card" id="plan-card" style="display:none;">
-      <div style="font-size:15px;font-weight:700;margin-bottom:4px;">4. Ton plan</div>
+    <details class="card acc" id="plan-card" style="display:none;">
+      <summary>4. Ton plan <span class="sum" id="sum-plan">vide</span></summary>
       <div style="font-size:12px;color:var(--text3);margin-bottom:12px;">Colle les titres de ton plan, une section par ligne.</div>
       <textarea class="textarea" id="mon-plan" placeholder="I. Introduction&#10;II. Causes&#10;III. Traitement&#10;IV. Conclusion" style="min-height:120px;"></textarea>
-    </div>
+    </details>
 
     <button class="btn btn-primary btn-lg" onclick="lancer()" style="width:100%;justify-content:center;">
       ✨ Générer

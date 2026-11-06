@@ -24,6 +24,7 @@ function selectMode(mode, el) {
   document.getElementById('acc-mode').open = false;
   if (!document.getElementById('cours-texte').value.trim()) document.getElementById('acc-cours').open = true;
   document.getElementById('plan-card').style.display = mode === 11 ? 'block' : 'none';
+  if (mode === 11) document.getElementById('plan-card').open = true;
   document.getElementById('longueur-card').style.display = mode === 2 ? 'block' : 'none';
 }
 
@@ -88,7 +89,7 @@ async function lancer() {
   }
 
   // Efface l'état vide
-  ['acc-mode', 'acc-cours', 'ctx-card'].forEach((id) => { document.getElementById(id).open = false; });
+  ['acc-mode', 'acc-cours', 'ctx-card', 'longueur-card', 'plan-card'].forEach((id) => { document.getElementById(id).open = false; });
   document.getElementById('result-panel').querySelector('div').style.display = 'none';
   hideAllResults();
   showInline('Gemini analyse ton cours...', true);
@@ -958,6 +959,16 @@ function afficherResultatTest() {
 function fermerTest() {
   document.getElementById('test-modal').style.display = 'none';
 }
+
+// Longueur et plan : résumés + repli
+document.querySelectorAll('[data-longueur]').forEach((el) => el.addEventListener('click', () => {
+  document.getElementById('sum-long').textContent = el.querySelector('.mode-name').textContent;
+  if (el.dataset.longueur !== 'perso') document.getElementById('longueur-card').open = false;
+}));
+document.getElementById('mon-plan').addEventListener('input', (e) => {
+  const n = e.target.value.split('\n').filter((l) => l.trim()).length;
+  document.getElementById('sum-plan').textContent = n ? n + ' sections' : 'vide';
+});
 
 // Résumés des étapes repliables
 document.getElementById('cours-texte').addEventListener('input', (e) => {
