@@ -18,8 +18,11 @@ let qcmData = [], qcmIndex = 0, qcmScore = 0, qcmAnswered = [];
 
 function selectMode(mode, el) {
   currentMode = mode;
-  document.querySelectorAll('.mode-card').forEach(c => c.classList.remove('selected'));
+  document.querySelectorAll('.mode-grid .mode-card').forEach(c => c.classList.remove('selected'));
   el.classList.add('selected');
+  document.getElementById('sum-mode').textContent = el.querySelector('.mode-name').textContent;
+  document.getElementById('acc-mode').open = false;
+  if (!document.getElementById('cours-texte').value.trim()) document.getElementById('acc-cours').open = true;
   document.getElementById('plan-card').style.display = mode === 11 ? 'block' : 'none';
   document.getElementById('longueur-card').style.display = mode === 2 ? 'block' : 'none';
 }
@@ -85,6 +88,7 @@ async function lancer() {
   }
 
   // Efface l'état vide
+  document.getElementById('acc-cours').open = false;
   document.getElementById('result-panel').querySelector('div').style.display = 'none';
   hideAllResults();
   showInline('Gemini analyse ton cours...', true);
@@ -120,7 +124,7 @@ async function lancer() {
   } catch(e) {
     hideInline();
     if (e.name === 'AbortError') {
-      document.getElementById('result-panel').querySelector('div').style.display = '';
+      document.getElementById('result-panel').querySelector('div').style.display = 'flex';
       showToast('Annulé', 'info'); return;
     }
     showToast('Erreur de connexion', 'error');
@@ -136,7 +140,7 @@ function showResult(id) {
 function showTextResult(txt, icon, title) {
   document.getElementById('result-icon').textContent = icon;
   document.getElementById('result-title').textContent = title;
-  document.getElementById('result-content').innerHTML = renderMarkdown(txt);
+  document.getElementById('result-content').innerHTML = renderMarkdown(txt.replace(/^#{4,6}\s+/gm, '### '));
   showResult('result-text');
 }
 
@@ -955,6 +959,16 @@ function fermerTest() {
   document.getElementById('test-modal').style.display = 'none';
 }
 
+// Résumés des étapes repliables
+document.getElementById('cours-texte').addEventListener('input', (e) => {
+  const n = e.target.value.length;
+  document.getElementById('sum-cours').textContent = n ? n + ' caractères' : 'vide';
+});
+document.getElementById('contexte').addEventListener('input', (e) => {
+  const v = e.target.value.trim();
+  document.getElementById('sum-ctx').textContent = v ? v.slice(0, 30) + (v.length > 30 ? '…' : '') : 'aucun';
+});
+
 // Transfert depuis /discuter (bouton « Tester »)
 (function () {
   try {
@@ -962,6 +976,7 @@ function fermerTest() {
     if (!t) return;
     sessionStorage.removeItem('quiz_depuis_chat');
     document.getElementById('cours-texte').value = t;
+    document.getElementById('cours-texte').dispatchEvent(new Event('input'));
     showToast('Texte de la discussion chargé : clique sur Générer', 'info');
   } catch (_) {}
 })();

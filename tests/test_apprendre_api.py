@@ -121,3 +121,11 @@ def test_apprendre_js_externe(env):
     assert '/static/apprendre.js' in html
     assert "function lancer()" not in html
     assert "async function lancer()" in JS
+
+
+def test_accordeon_apprendre(env):
+    _, c, _ = env
+    html = c.get("/apprendre").get_data(as_text=True)
+    assert 'id="acc-mode"' in html and 'id="acc-cours"' in html and 'id="ctx-card"' in html
+    assert html.count("<details") >= 4
+    assert 'id="acc-mode" open' not in html and 'id="acc-cours" open' in html

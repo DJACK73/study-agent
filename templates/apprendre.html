@@ -4,6 +4,15 @@
 {% block topbar_sub %}5 modes d'apprentissage{% endblock %}
 
 {% block extra_style %}
+.grid-2.apprendre-grid{grid-template-columns:5fr 7fr;}
+.apprendre-grid > *{min-width:0;}
+@media(max-width:900px){.grid-2.apprendre-grid{grid-template-columns:1fr;}}
+.acc > summary{cursor:pointer;list-style:none;display:flex;align-items:center;font-size:15px;font-weight:700;}
+.acc > summary::-webkit-details-marker{display:none;}
+.acc > summary::after{content:'▾';color:var(--text3);margin-left:12px;}
+.acc[open] > summary{margin-bottom:16px;}
+.acc[open] > summary::after{content:'▴';}
+.acc .sum{font-weight:400;font-size:13px;color:var(--text3);margin-left:auto;}
 .mode-grid { display: grid; grid-template-columns: repeat(3,1fr); gap: 12px; margin-bottom: 24px; }
 .mode-card {
   padding: 16px;
@@ -133,14 +142,14 @@
 
 {% block content %}
 {% include "_guide_formats.html" %}
-<div class="grid-2" style="gap:24px;align-items:start;">
+<div class="grid-2 apprendre-grid" style="gap:24px;align-items:start;">
 
   <!-- Panneau gauche : configuration -->
   <div style="display:flex;flex-direction:column;gap:20px;">
 
     <!-- Choix du mode -->
-    <div class="card">
-      <div style="font-size:15px;font-weight:700;margin-bottom:16px;">1. Choisir un mode</div>
+    <details class="card acc" id="acc-mode">
+      <summary>1. Choisir un mode <span class="sum" id="sum-mode">QCM</span></summary>
       <div class="mode-grid">
         <div class="mode-card" onclick="selectMode(2,this)" data-mode="2">
           <span class="mode-icon">📄</span>
@@ -168,11 +177,11 @@
           <span class="mode-desc">Exposé sur ta structure</span>
         </div>
       </div>
-    </div>
+    </details>
 
     <!-- Contenu du cours -->
-    <div class="card">
-      <div style="font-size:15px;font-weight:700;margin-bottom:16px;">2. Contenu du cours</div>
+    <details class="card acc" id="acc-cours" open>
+      <summary>2. Contenu du cours <span class="sum" id="sum-cours">vide</span></summary>
 
       <div class="input-tabs">
         <button class="input-tab active" onclick="switchTab('texte',this)">✏️ Texte</button>
@@ -200,14 +209,14 @@
         </div>
         <input type="file" id="file-input" accept="image/*" style="display:none" onchange="handleFile(this.files[0])"/>
       </div>
-    </div>
+    </details>
 
     <!-- Contexte optionnel -->
-    <div class="card" id="ctx-card">
-      <div style="font-size:15px;font-weight:700;margin-bottom:4px;">3. Contexte <span style="color:var(--text3);font-weight:400;font-size:13px;">(optionnel)</span></div>
+    <details class="card acc" id="ctx-card">
+      <summary>3. Contexte (optionnel) <span class="sum" id="sum-ctx">aucun</span></summary>
       <div style="font-size:12px;color:var(--text3);margin-bottom:12px;">Niveau, objectif, type d'examen...</div>
       <input class="input" id="contexte" placeholder="Ex: Étudiant en 3e année de médecine, examen dans 2 semaines"/>
-    </div>
+    </details>
 
     <!-- Longueur exposé (mode 2 uniquement) -->
     <div class="card" id="longueur-card" style="display:none;">
