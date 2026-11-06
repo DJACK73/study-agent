@@ -138,6 +138,13 @@ function showResult(id) {
   document.getElementById(id).scrollIntoView({ behavior: 'smooth', block: 'start' });
 }
 
+function copyResult() {
+  const t = document.getElementById('result-content').textContent;
+  const ok = () => showToast('Copié', 'success');
+  const ko = () => showToast('Copie impossible', 'error');
+  if (navigator.clipboard && navigator.clipboard.writeText) navigator.clipboard.writeText(t).then(ok, ko);
+  else ko();
+}
 const RE_CORRIGE = /^[ \t*_#]*-{2,}\s*corrig[ée]\s*-{2,}[ \t*_]*$/im;
 function showTextResult(txt, icon, title) {
   const old = document.getElementById('btn-corrige');
