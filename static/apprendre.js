@@ -138,7 +138,31 @@ function showResult(id) {
   document.getElementById(id).scrollIntoView({ behavior: 'smooth', block: 'start' });
 }
 
+const RE_CORRIGE = /^[ \t]*-{2,}\s*corrig[ée]\s*-{2,}[ \t]*$/im;
 function showTextResult(txt, icon, title) {
+  const old = document.getElementById('btn-corrige');
+  if (old) old.remove();
+  const m = RE_CORRIGE.exec(txt);
+  if (m && icon === '🎓') {
+    const q = txt.slice(0, m.index), c = txt.slice(m.index);
+    document.getElementById('result-icon').textContent = icon;
+    document.getElementById('result-title').textContent = title;
+    const box = document.getElementById('result-content');
+    box.innerHTML = renderMarkdown(q.replace(/^#{4,6}\s+/gm, '### ')) +
+      '<div id="corrige-box" style="display:none">' + renderMarkdown(c.replace(/^#{4,6}\s+/gm, '### ')) + '</div>';
+    const b = document.createElement('button');
+    b.id = 'btn-corrige'; b.className = 'btn btn-ghost btn-sm'; b.textContent = '👁 Afficher le corrigé';
+    b.onclick = () => {
+      const cb = document.getElementById('corrige-box');
+      const on = cb.style.display === 'none';
+      cb.style.display = on ? 'block' : 'none';
+      b.textContent = on ? '🙈 Masquer le corrigé' : '👁 Afficher le corrigé';
+    };
+    document.querySelector('#result-text .result-header').insertBefore(b, document.querySelector('#result-text .result-header button'));
+    showResult('result-text');
+    return;
+  }
+
   document.getElementById('result-icon').textContent = icon;
   document.getElementById('result-title').textContent = title;
   document.getElementById('result-content').innerHTML = renderMarkdown(txt.replace(/^#{4,6}\s+/gm, '### '));

@@ -150,3 +150,8 @@ def test_longueur_et_plan_repliables(env):
     assert '<details class="card acc" id="longueur-card"' in html
     assert '<details class="card acc" id="plan-card"' in html
     assert html.count("<details") == html.count("</details>")
+
+
+def test_marqueur_corrige_present_dans_js(env):
+    JSX = JS
+    assert "RE_CORRIGE" in JSX and "btn-corrige" in JSX
