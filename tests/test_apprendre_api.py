@@ -129,3 +129,9 @@ def test_accordeon_apprendre(env):
     assert 'id="acc-mode"' in html and 'id="acc-cours"' in html and 'id="ctx-card"' in html
     assert html.count("<details") >= 4
     assert 'id="acc-mode" open' not in html and 'id="acc-cours" open' in html
+
+
+def test_apprendre_sans_compteur_en_dur(env):
+    _, c, _ = env
+    html = c.get("/apprendre").get_data(as_text=True)
+    assert "5 modes d'apprentissage" not in html

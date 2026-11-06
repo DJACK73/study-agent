@@ -88,7 +88,7 @@ async function lancer() {
   }
 
   // Efface l'état vide
-  document.getElementById('acc-cours').open = false;
+  ['acc-mode', 'acc-cours', 'ctx-card'].forEach((id) => { document.getElementById(id).open = false; });
   document.getElementById('result-panel').querySelector('div').style.display = 'none';
   hideAllResults();
   showInline('Gemini analyse ton cours...', true);

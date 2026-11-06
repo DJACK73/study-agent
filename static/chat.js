@@ -212,7 +212,7 @@
   $('btn-quiz').onclick = () => {
     const l = [...document.querySelectorAll('#msgs .msg.ai')].filter((x) => x.dataset.raw && x.dataset.raw !== '…').pop();
     if (!l) { showToast('Aucune réponse à tester', 'info'); return; }
-    try { sessionStorage.setItem('quiz_depuis_chat', l.dataset.raw); }
+    try { sessionStorage.setItem('quiz_depuis_chat', l.dataset.raw.replace(/\*+/g, '')); }
     catch (_) { showToast('Transfert impossible', 'error'); return; }
     location.href = '/apprendre';
   };
