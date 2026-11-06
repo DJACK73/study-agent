@@ -67,6 +67,7 @@
     const e = m.querySelector('.chat-empty'); if (e) e.remove();
     const d = document.createElement('div');
     d.className = 'msg ' + role + (err ? ' err' : '') + (role === 'ai' && !err ? ' md-output' : '');
+    if (role === 'ai' && !err) d.dataset.raw = texte;
     if (role === 'user' || err) d.textContent = texte; else d.innerHTML = md(texte);
     if (img) {
       const im = document.createElement('img'); im.src = img; im.alt = '';
@@ -208,5 +209,12 @@
   const zone = document.querySelector('.chat-main');
   zone.addEventListener('dragover', (e) => e.preventDefault());
   zone.addEventListener('drop', (e) => { e.preventDefault(); prendre(e.dataTransfer.files[0]); });
+  $('btn-quiz').onclick = () => {
+    const l = [...document.querySelectorAll('#msgs .msg.ai')].filter((x) => x.dataset.raw && x.dataset.raw !== '…').pop();
+    if (!l) { showToast('Aucune réponse à tester', 'info'); return; }
+    try { sessionStorage.setItem('quiz_depuis_chat', l.dataset.raw); }
+    catch (_) { showToast('Transfert impossible', 'error'); return; }
+    location.href = '/apprendre';
+  };
   liste().then(() => { $('inp').focus(); }).catch((e) => showToast(e.message, 'error'));
 })();

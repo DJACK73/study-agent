@@ -1363,5 +1363,16 @@ function afficherResultatTest() {
 function fermerTest() {
   document.getElementById('test-modal').style.display = 'none';
 }
+
+// Transfert depuis /discuter (bouton « Tester »)
+(function () {
+  try {
+    const t = sessionStorage.getItem('quiz_depuis_chat');
+    if (!t) return;
+    sessionStorage.removeItem('quiz_depuis_chat');
+    document.getElementById('cours-texte').value = t;
+    showToast('Texte de la discussion chargé : clique sur Générer', 'info');
+  } catch (_) {}
+})();
 </script>
 {% endblock %}

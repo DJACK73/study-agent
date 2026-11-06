@@ -103,3 +103,9 @@ def test_prompts_nettoyes():
     from modules import generator
     assert 2 not in generator.MODES and 1 in generator.MODES
     assert "sans jamais écrire" in generator.SYSTEM_PROMPT
+
+
+def test_quiz_depuis_discussion(env):
+    _, c, _ = env
+    assert 'id="btn-quiz"' in c.get("/discuter").get_data(as_text=True)
+    assert "quiz_depuis_chat" in c.get("/apprendre").get_data(as_text=True)
