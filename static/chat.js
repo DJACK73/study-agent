@@ -3,6 +3,8 @@
   const MAX_OCTETS = 10 * 1024 * 1024;
   const $ = (id) => document.getElementById(id);
   let cid = null, busy = false, fichier = null;
+  let ctrl = null;
+  const setSend = (on) => { const b = $('btn-send'); b.disabled = false; b.textContent = on ? '✕ Annuler' : 'Envoyer'; };
 
   async function j(url, opt) {
     const r = await fetch(url, opt);
@@ -149,7 +151,7 @@
   async function envoyer() {
     const txt = $('inp').value.trim();
     if ((!txt && !fichier) || busy) return;
-    busy = true; $('btn-send').disabled = true; $('inp').value = '';
+    busy = true; setSend(true); $('inp').value = '';
     const f = fichier; fichier = null; $('file').value = ''; chip();
     if (!cid) {
       try {
@@ -157,31 +159,36 @@
         cid = d0.id; $('msgs').innerHTML = '';
       } catch (e) {
         showToast(e.message, 'error'); $('inp').value = txt; fichier = f; chip();
-        busy = false; $('btn-send').disabled = false; return;
+        busy = false; setSend(false); return;
       }
     }
     bulle('user', txt || ('📎 ' + f.name), null, false,
       f && f.type.indexOf('image/') === 0 ? URL.createObjectURL(f) : null);
     const att = bulle('ai', '…');
+    ctrl = new AbortController();
     try {
       let opt;
       if (f) {
         const fd = new FormData();
         fd.append('message', txt); fd.append('web', $('chk-web').checked ? '1' : '0'); fd.append('fichier', f);
-        opt = {method:'POST', body: fd};
+        opt = {method:'POST', body: fd, signal: ctrl.signal};
       } else {
-        opt = {method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify({message: txt, web: $('chk-web').checked})};
+        opt = {method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify({message: txt, web: $('chk-web').checked}), signal: ctrl.signal};
       }
       const d = await j(API + '/conversations/' + cid + '/messages', opt);
       att.remove(); bulle('ai', d.reponse, d.pdf_path);
       if (d.web_statut && d.web_statut !== 'ok') showToast('Web : ' + d.web_statut, 'info');
       await liste();
-    } catch (e) { att.remove(); bulle('ai', 'Erreur : ' + e.message, null, true); }
-    busy = false; $('btn-send').disabled = false; $('inp').focus();
+    } catch (e) {
+      att.remove();
+      if (e.name === 'AbortError') showToast('Annulé', 'info');
+      else bulle('ai', 'Erreur : ' + e.message, null, true);
+    }
+    busy = false; setSend(false); $('inp').focus();
   }
 
   $('btn-new').onclick = nouvelle;
-  $('btn-send').onclick = envoyer;
+  $('btn-send').onclick = () => { if (busy) { if (ctrl) ctrl.abort(); } else envoyer(); };
   $('file').onchange = () => {
     const f = $('file').files[0];
     if (!f) return;

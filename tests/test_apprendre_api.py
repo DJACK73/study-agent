@@ -76,7 +76,9 @@ def test_bouton_annuler_present(env):
     html = c.get("/apprendre").get_data(as_text=True)
     assert 'id="loading-cancel"' in html
     assert html.count("annulerRequete()") >= 3
-    assert "showLoading('Gemini analyse ton cours...', true)" in html
+    assert 'id="inline-load"' in html
+    assert "showInline('Gemini analyse ton cours...'" in html
+    assert "showLoading('Gemini analyse ton cours...'" not in html
 
 
 class _Err(Exception):

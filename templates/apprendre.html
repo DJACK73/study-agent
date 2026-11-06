@@ -273,6 +273,11 @@
       <span style="font-size:15px;">Choisis un mode et lance la génération</span>
       <span style="font-size:13px;color:var(--text3);">Le résultat apparaît ici</span>
     </div>
+    <div id="inline-load" style="display:none;flex-direction:column;align-items:center;justify-content:center;height:300px;gap:14px;color:var(--text2);">
+      <div class="loader" style="width:36px;height:36px;border-width:3px;"></div>
+      <span id="inline-load-txt" style="font-family:'JetBrains Mono',monospace;font-size:13px;"></span>
+      <button class="btn btn-ghost btn-sm" onclick="annulerRequete()">✕ Annuler</button>
+    </div>
 
     <!-- Exposé interactif Option C -->
     <div class="result-box" id="result-expose">
@@ -467,7 +472,20 @@ function hideAllResults() {
     .forEach(id => document.getElementById(id).style.display = 'none');
 }
 
+function showInline(txt) {
+  window._genBusy = true;
+  document.getElementById('inline-load-txt').textContent = txt;
+  const b = document.getElementById('inline-load');
+  b.style.display = 'flex';
+  b.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+}
+function hideInline() {
+  window._genBusy = false;
+  document.getElementById('inline-load').style.display = 'none';
+}
+
 async function lancer() {
+  if (window._genBusy) { showToast('Génération en cours', 'info'); return; }
   const texte    = document.getElementById('cours-texte').value.trim();
   const contexte = document.getElementById('contexte').value.trim();
 
@@ -478,27 +496,27 @@ async function lancer() {
   // Efface l'état vide
   document.getElementById('result-panel').querySelector('div').style.display = 'none';
   hideAllResults();
-  showLoading('Gemini analyse ton cours...', true);
+  showInline('Gemini analyse ton cours...', true);
 
   try {
     if (currentMode === 11) {
       // Mode mon plan
       const plan = document.getElementById('mon-plan').value.trim();
-      if (!plan) { hideLoading(); showToast('Ajoute ton plan', 'error'); return; }
+      if (!plan) { hideInline(); showToast('Ajoute ton plan', 'error'); return; }
       const data = await apiPost('/api/generer_plan', { texte, plan, image_b64: imageB64 });
-      hideLoading();
+      hideInline();
       if (data.error) { showToast(data.error, 'error'); return; }
       showTextResult(data.resultat, '✍️', 'Exposé depuis ton plan');
 
     } else if (currentMode === 2) {
-      hideLoading();
+      hideInline();
       await lancerPlan();
       return;
     } else {
       const data = await apiPost('/api/generer', {
         mode: currentMode, texte, image_b64: imageB64, contexte,
       });
-      hideLoading();
+      hideInline();
       if (data.error) { showToast(data.error, 'error'); return; }
 
       if (currentMode === 3) renderFlashcards(data.resultat);
@@ -509,7 +527,7 @@ async function lancer() {
     }
     showToast('Génération terminée !', 'success');
   } catch(e) {
-    hideLoading();
+    hideInline();
     if (e.name === 'AbortError') {
       document.getElementById('result-panel').querySelector('div').style.display = '';
       showToast('Annulé', 'info'); return;
@@ -546,7 +564,7 @@ async function lancerPlan() {
   exposeContenu  = texte;
   exposeImageB64 = imageB64;
 
-  showLoading('Gemini construit le plan...', true);
+  showInline('Gemini construit le plan...', true);
   const consignePerso = currentLongueur === 'perso'
     ? (document.getElementById('longueur-perso-texte').value.trim() || '')
     : '';
@@ -555,7 +573,7 @@ async function lancerPlan() {
       sujet: exposeSujet, contexte, longueur: currentLongueur,
       consigne_perso: consignePerso
     });
-    hideLoading();
+    hideInline();
     if (data.error) { showToast(data.error, 'error'); return; }
     exposePlan     = data.plan;
     exposeIndex    = 0;
@@ -563,7 +581,7 @@ async function lancerPlan() {
     afficherPlanEditeur();
     showResult('result-expose');
   } catch(e) {
-    hideLoading();
+    hideInline();
     if (e.name === 'AbortError') { showToast('Annulé', 'info'); return; }
     showToast('Erreur génération plan', 'error');
   }
@@ -871,7 +889,7 @@ function updateQcm() {
   const answered = qcmAnswered[qcmIndex];
 
   document.getElementById('qcm-content').innerHTML = `
-    <div class="qcm-question">[${qcmIndex+1}/${qcmData.length}] ${q.question}</div>
+    <div class="qcm-question">${q.question}</div>
     <div class="qcm-choices">
       ${q.choix.map((c,i) => `
         <button class="qcm-choice ${answered ? getChoiceClass(i,q) : ''}"
