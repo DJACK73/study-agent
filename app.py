@@ -106,6 +106,30 @@ def _img_temp(octets, ext="jpg"):
             pass
 
 
+import os as _os
+
+
+def _int_ou_none(v, default=None, lo=None, hi=None):
+    # int borne ; None si invalide ou hors bornes
+    try:
+        n = int(default if v is None else v)
+    except (TypeError, ValueError):
+        return None
+    if (lo is not None and n < lo) or (hi is not None and n > hi):
+        return None
+    return n
+
+
+@app.context_processor
+def _assets():
+    def v(f):
+        try:
+            return int(_os.path.getmtime(_os.path.join(app.static_folder, f)))
+        except OSError:
+            return 0
+    return {"asset_v": v}
+
+
 @app.route("/api/generer", methods=["POST"])
 def api_generer():
     data       = request.get_json(force=True)
@@ -189,8 +213,10 @@ def api_revision_cartes():
 @app.route("/api/revision/evaluer", methods=["POST"])
 def api_revision_evaluer():
     data    = request.get_json(force=True)
-    card_id = int(data.get("card_id"))
-    score   = int(data.get("score"))
+    card_id = _int_ou_none(data.get("card_id"))
+    score   = _int_ou_none(data.get("score"))
+    if card_id is None or score is None:
+        return jsonify({"error": "card_id ou score invalide"}), 400
 
     if not (0 <= score <= 5):
         return jsonify({"error": "Score invalide (0-5)"}), 400
@@ -266,7 +292,9 @@ def api_expose_section():
     data              = request.get_json(force=True)
     sujet             = data.get("sujet", "").strip()
     plan              = data.get("plan", [])
-    index             = int(data.get("index", 0))
+    index             = _int_ou_none(data.get("index", 0), 0, 0, 200)
+    if index is None:
+        return jsonify({"error": "index invalide"}), 400
     contenu_precedent = data.get("contenu_precedent", "")
     texte             = data.get("texte", "").strip()
     image_b64         = data.get("image_b64", "")
@@ -452,7 +480,9 @@ def api_cours_importer():
 
     data         = request.get_json(force=True)
     sujet        = data.get("sujet", "Mon cours").strip()
-    nb           = int(data.get("nb", 10))
+    nb           = _int_ou_none(data.get("nb", 10), 10, 1, 30)
+    if nb is None:
+        return jsonify({"error": "nb invalide (1-30)"}), 400
     texte        = data.get("texte", "").strip()
     fichier_b64  = data.get("fichier_b64", "")
     fichier_type = data.get("fichier_type", "")

@@ -1,0 +1,2 @@
+#!/bin/sh
+node --check static/apprendre.js && node --check static/chat.js && ./venv/bin/python -m pytest tests -q -x
