@@ -182,3 +182,10 @@ def test_expose_section_index_invalide(env, idx):
     _, c, _ = env
     r = c.post("/api/expose/section", json={"sujet": "s", "plan": ["a"], "index": idx})
     assert r.status_code == 400
+
+
+@pytest.mark.parametrize("plan,idx", [("abc", 0), (123, 0), (["a"], 1), (["a", "b"], 5)])
+def test_expose_section_plan_ou_index_hors_limites(env, plan, idx):
+    _, c, _ = env
+    r = c.post("/api/expose/section", json={"sujet": "s", "plan": plan, "index": idx})
+    assert r.status_code == 400

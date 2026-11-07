@@ -303,6 +303,10 @@ def api_expose_section():
 
     if not plan:
         return jsonify({"error": "Plan vide"}), 400
+    if not isinstance(plan, list):
+        return jsonify({"error": "Plan invalide"}), 400
+    if index >= len(plan):
+        return jsonify({"error": "index hors du plan"}), 400
 
     try:
         if image_b64:
