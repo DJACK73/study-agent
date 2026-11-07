@@ -175,3 +175,10 @@ def test_importer_nb_invalide(env, nb):
     _, c, _ = env
     r = c.post("/api/cours/importer", json={"nb": nb, "texte": "a"})
     assert r.status_code == 400
+
+
+@pytest.mark.parametrize("idx", ["x", -1, 201, 9999, [1]])
+def test_expose_section_index_invalide(env, idx):
+    _, c, _ = env
+    r = c.post("/api/expose/section", json={"sujet": "s", "plan": ["a"], "index": idx})
+    assert r.status_code == 400
