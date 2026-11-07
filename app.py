@@ -87,6 +87,9 @@ def _erreur(e):
         msg = ("Quota Gemini atteint, reessaie plus tard" if code == 429
                else "Gemini est surcharge, reessaie dans un moment")
         return jsonify({"error": msg}), code
+    if isinstance(e, TimeoutError):
+        logging.warning("Gemini timeout")
+        return jsonify({"error": "Gemini ne repond pas, reessaie"}), 504
     logging.exception("Erreur route API")
     return jsonify({"error": str(e)}), 500
 

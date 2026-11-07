@@ -204,6 +204,8 @@ def envoyer(cid):
         print(f"chat gemini: {e}")
         if img_path:
             img_path.unlink(missing_ok=True)
+        if isinstance(e, TimeoutError):
+            return jsonify({"error": "Gemini ne repond pas, reessaie"}), 504
         return jsonify({"error": "Gemini indisponible"}), 502
     rel = f"uploads/{img_path.name}" if img_path else None
     from sqlite3 import IntegrityError

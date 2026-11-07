@@ -33,3 +33,13 @@ def test_champs_non_texte_pas_de_500(tmp_path, monkeypatch):
     c = appmod.app.test_client()
     r = c.post("/api/expose/section", json={"sujet": 123, "texte": 5, "consigne_perso": None, "plan": "abc"})
     assert r.status_code == 400
+
+
+def test_erreur_timeout_504(tmp_path, monkeypatch):
+    monkeypatch.setenv("GEMINI_API_KEY", "dummy")
+    monkeypatch.setattr("modules.database.DB_PATH", tmp_path / "t.db")
+    import app as appmod
+    with appmod.app.test_request_context():
+        resp, code = appmod._erreur(TimeoutError("x"))
+    assert code == 504
+    assert "reessaie" in resp.get_json()["error"]
