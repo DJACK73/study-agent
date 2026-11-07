@@ -5,7 +5,8 @@ sys.path.append(os.path.dirname(os.path.dirname(__file__)))
 from config import GEMINI_API_KEY, MODEL_NAME, MODEL_SMART
 
 _KEYS = [k for k in (GEMINI_API_KEY, os.environ.get("GEMINI_API_KEY_2")) if k] or [GEMINI_API_KEY]
-_CLIENTS = [genai.Client(api_key=k) for k in _KEYS]
+_TIMEOUT_MS = 120_000
+_CLIENTS = [genai.Client(api_key=k, http_options=genai.types.HttpOptions(timeout=_TIMEOUT_MS)) for k in _KEYS]
 _DELAIS = (2, 5, 5)  # attente avant les essais 2, 3 et 4
 _RETRY = (429, 503)
 
@@ -22,6 +23,8 @@ def _appeler(contents) -> str:
         try:
             return client.models.generate_content(model=modele, contents=contents).text
         except Exception as e:
+            if "Timeout" in type(e).__name__:
+                raise TimeoutError("Gemini ne repond pas (delai depasse)") from e
             if getattr(e, "code", None) not in _RETRY:
                 raise
             derniere = e

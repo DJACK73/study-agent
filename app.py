@@ -109,6 +109,11 @@ def _img_temp(octets, ext="jpg"):
 import os as _os
 
 
+def _txt(d, key, default=""):
+    v = d.get(key, default)
+    return v.strip() if isinstance(v, str) else default
+
+
 def _int_ou_none(v, default=None, lo=None, hi=None):
     # int borne ; None si invalide ou hors bornes
     try:
@@ -139,7 +144,7 @@ def api_generer():
         mode = 0
     if mode not in MODES_API:
         return jsonify({"error": "Mode invalide"}), 400
-    texte      = data.get("texte", "").strip()
+    texte      = _txt(data, "texte", "")
     image_b64  = data.get("image_b64", "")
     contexte   = data.get("contexte", "")
 
@@ -181,8 +186,8 @@ def api_generer():
 @app.route("/api/generer_plan", methods=["POST"])
 def api_generer_plan():
     data      = request.get_json(force=True)
-    texte     = data.get("texte", "").strip()
-    plan      = data.get("plan", "").strip()
+    texte     = _txt(data, "texte", "")
+    plan      = _txt(data, "plan", "")
     image_b64 = data.get("image_b64", "")
 
     if not plan:
@@ -261,10 +266,10 @@ def api_expose_plan():
     Body : { sujet, contexte }
     """
     data          = request.get_json(force=True)
-    sujet         = data.get("sujet", "").strip()
-    contexte      = data.get("contexte", "").strip()
+    sujet         = _txt(data, "sujet", "")
+    contexte      = _txt(data, "contexte", "")
     longueur      = data.get("longueur", "complet")
-    consigne_perso= data.get("consigne_perso", "").strip()
+    consigne_perso= _txt(data, "consigne_perso", "")
 
     if not sujet:
         return jsonify({"error": "Sujet vide"}), 400
@@ -290,16 +295,16 @@ def api_expose_section():
     Body : { sujet, plan, index, contenu_precedent, texte, image_b64 }
     """
     data              = request.get_json(force=True)
-    sujet             = data.get("sujet", "").strip()
+    sujet             = _txt(data, "sujet", "")
     plan              = data.get("plan", [])
     index             = _int_ou_none(data.get("index", 0), 0, 0, 200)
     if index is None:
         return jsonify({"error": "index invalide"}), 400
     contenu_precedent = data.get("contenu_precedent", "")
-    texte             = data.get("texte", "").strip()
+    texte             = _txt(data, "texte", "")
     image_b64         = data.get("image_b64", "")
     longueur          = data.get("longueur", "complet")
-    consigne_perso    = data.get("consigne_perso", "").strip()
+    consigne_perso    = _txt(data, "consigne_perso", "")
 
     if not plan:
         return jsonify({"error": "Plan vide"}), 400
@@ -342,8 +347,8 @@ def api_expose_test():
     from modules.gemini_handler import analyser_texte
 
     data    = request.get_json(force=True)
-    contenu = data.get("contenu", "").strip()
-    sujet   = data.get("sujet", "ce sujet").strip()
+    contenu = _txt(data, "contenu", "")
+    sujet   = _txt(data, "sujet", "ce sujet")
 
     if not contenu:
         return jsonify({"error": "Contenu vide"}), 400
@@ -389,7 +394,7 @@ def api_expose_corriger():
 
     data             = request.get_json(force=True)
     question         = data.get("question", "")
-    reponse_user     = data.get("reponse_user", "").strip()
+    reponse_user     = _txt(data, "reponse_user", "")
     reponse_attendue = data.get("reponse_attendue", "")
 
     if not reponse_user:
@@ -483,11 +488,11 @@ def api_cours_importer():
     import re
 
     data         = request.get_json(force=True)
-    sujet        = data.get("sujet", "Mon cours").strip()
+    sujet        = _txt(data, "sujet", "Mon cours")
     nb           = _int_ou_none(data.get("nb", 10), 10, 1, 30)
     if nb is None:
         return jsonify({"error": "nb invalide (1-30)"}), 400
-    texte        = data.get("texte", "").strip()
+    texte        = _txt(data, "texte", "")
     fichier_b64  = data.get("fichier_b64", "")
     fichier_type = data.get("fichier_type", "")
     fichier_nom  = data.get("fichier_nom", "")
