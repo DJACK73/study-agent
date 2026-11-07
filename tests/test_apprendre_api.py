@@ -155,3 +155,23 @@ def test_longueur_et_plan_repliables(env):
 def test_marqueur_corrige_present_dans_js(env):
     JSX = JS
     assert "RE_CORRIGE" in JSX and "btn-corrige" in JSX
+
+
+@pytest.mark.parametrize("cid,score", [("x", 3), (None, 3), (1, "abc"), (1, None)])
+def test_evaluer_params_invalides(env, cid, score):
+    _, c, _ = env
+    r = c.post("/api/revision/evaluer", json={"card_id": cid, "score": score})
+    assert r.status_code == 400
+
+
+def test_evaluer_score_hors_plage(env):
+    _, c, _ = env
+    r = c.post("/api/revision/evaluer", json={"card_id": 1, "score": 9})
+    assert r.status_code == 400
+
+
+@pytest.mark.parametrize("nb", [0, 31, 999, "x", -1])
+def test_importer_nb_invalide(env, nb):
+    _, c, _ = env
+    r = c.post("/api/cours/importer", json={"nb": nb, "texte": "a"})
+    assert r.status_code == 400
