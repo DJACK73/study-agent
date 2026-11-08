@@ -1050,3 +1050,29 @@ function regenerer() {
   const el = document.querySelector('.mode-card[data-mode="' + m + '"]');
   if (el) selectMode(m, el);
 })();
+
+// ── Export Anki : texte séparé par des tabulations, UTF-8 sans BOM ──
+function cartesEnAnki(cards) {
+  const champ = (v) => {
+    const s = String(v == null ? '' : v).trim();
+    return /[\t"\n\r]/.test(s) ? '"' + s.replace(/"/g, '""') + '"' : s;
+  };
+  return cards
+    .map((c) => [champ(c.question), champ(c.reponse || c.answer)])
+    .filter((p) => p[0] && p[1])
+    .map((p) => p[0] + '\t' + p[1])
+    .join('\n') + '\n';
+}
+function exportAnki() {
+  if (!fcCards.length) { showToast('Aucune carte à exporter', 'error'); return; }
+  const blob = new Blob([cartesEnAnki(fcCards)], { type: 'text/plain;charset=utf-8' });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url;
+  a.download = 'cartes-anki.txt';
+  document.body.appendChild(a);
+  a.click();
+  a.remove();
+  setTimeout(() => URL.revokeObjectURL(url), 1000);
+  showToast(fcCards.length + ' cartes exportées', 'success');
+}
