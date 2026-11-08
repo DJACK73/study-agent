@@ -6,15 +6,42 @@
   <title>{% block title %}Study Agent{% endblock %}</title>
   <link rel="preconnect" href="https://fonts.googleapis.com"/>
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=JetBrains+Mono:wght@400;600&display=swap" rel="stylesheet"/>
+  <script>try{var _t=localStorage.getItem('theme')||'dark';if(_t!=='auto')document.documentElement.setAttribute('data-theme',_t==='light'?'light':'dark');}catch(e){document.documentElement.setAttribute('data-theme','dark');}</script>
   <style>
     *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
     :root {
-      --bg:#0D0F14; --bg2:#13161E; --bg3:#1E2130; --border:#2A2D3E;
-      --accent:#6C63FF; --accent2:#9B8FFF; --accent-glow:rgba(108,99,255,.25);
-      --green:#3DDC84; --yellow:#FFD166; --red:#FF6B6B;
+      --bg:#0D0F14; --bg2:#13161E; --bg3:#1E2130; --border:#2A2D3E; --bg-hover:#252838;
+      --accent:#6C63FF; --accent2:#9B8FFF; --accent-rgb:108,99,255; --accent-glow:rgba(var(--accent-rgb),.25);
+      --green:#3DDC84; --green-rgb:61,220,132; --on-green:#0D0F14;
+      --yellow:#FFD166; --yellow-rgb:255,209,102;
+      --red:#FF6B6B; --red-rgb:255,107,107;
       --text:#E8EAF0; --text2:#9094A8; --text3:#555970;
+      --bg-rgb:13,15,20; --fg-rgb:255,255,255;
       --radius:12px; --radius-lg:18px; --sidebar-w:240px;
       --transition:.2s cubic-bezier(.4,0,.2,1);
+      color-scheme:dark;
+    }
+    :root[data-theme="light"] {
+      --bg:#F6F5F2; --bg2:#FFFFFF; --bg3:#EEEDE8; --border:#DDDBD3; --bg-hover:#E6E4DD;
+      --accent:#5B52E8; --accent2:#4A41D6; --accent-rgb:91,82,232;
+      --green:#14733F; --green-rgb:20,115,63; --on-green:#FFFFFF;
+      --yellow:#8A5D00; --yellow-rgb:138,93,0;
+      --red:#C42B2B; --red-rgb:196,43,43;
+      --text:#1A1C26; --text2:#4F5367; --text3:#686C80;
+      --bg-rgb:246,245,242; --fg-rgb:0,0,0;
+      color-scheme:light;
+    }
+    @media (prefers-color-scheme: light) {
+      :root:not([data-theme]) {
+      --bg:#F6F5F2; --bg2:#FFFFFF; --bg3:#EEEDE8; --border:#DDDBD3; --bg-hover:#E6E4DD;
+      --accent:#5B52E8; --accent2:#4A41D6; --accent-rgb:91,82,232;
+      --green:#14733F; --green-rgb:20,115,63; --on-green:#FFFFFF;
+      --yellow:#8A5D00; --yellow-rgb:138,93,0;
+      --red:#C42B2B; --red-rgb:196,43,43;
+      --text:#1A1C26; --text2:#4F5367; --text3:#686C80;
+      --bg-rgb:246,245,242; --fg-rgb:0,0,0;
+      color-scheme:light;
+      }
     }
     html,body{height:100%;}
     body{font-family:'Inter',sans-serif;background:var(--bg);color:var(--text);display:flex;min-height:100vh;overflow-x:hidden;}
@@ -29,12 +56,12 @@
     .nav-label{font-size:10px;font-weight:600;text-transform:uppercase;letter-spacing:1.2px;color:var(--text3);padding:8px 12px 6px;}
     .nav-item{display:flex;align-items:center;gap:10px;padding:10px 12px;border-radius:var(--radius);text-decoration:none;color:var(--text2);font-size:13.5px;font-weight:500;transition:all var(--transition);position:relative;}
     .nav-item:hover{background:var(--bg3);color:var(--text);}
-    .nav-item.active{background:linear-gradient(135deg,rgba(108,99,255,.18),rgba(108,99,255,.08));color:var(--accent2);border:1px solid rgba(108,99,255,.2);}
+    .nav-item.active{background:linear-gradient(135deg,rgba(var(--accent-rgb),.18),rgba(var(--accent-rgb),.08));color:var(--accent2);border:1px solid rgba(var(--accent-rgb),.2);}
     .nav-item.active::before{content:'';position:absolute;left:0;top:20%;bottom:20%;width:3px;background:var(--accent);border-radius:0 3px 3px 0;}
     .nav-icon{font-size:16px;width:20px;text-align:center;}
     .nav-badge{margin-left:auto;background:var(--accent);color:#fff;font-size:10px;font-weight:700;padding:2px 7px;border-radius:20px;font-family:'JetBrains Mono',monospace;}
     .nav-badge.red{background:var(--red);}
-    .nav-badge.green{background:var(--green);color:#0D0F14;}
+    .nav-badge.green{background:var(--green);color:var(--on-green);}
     .sidebar-footer{margin-top:auto;padding:16px 24px 0;border-top:1px solid var(--border);}
     .sidebar-footer .version{font-size:11px;color:var(--text3);font-family:'JetBrains Mono',monospace;}
 
@@ -48,10 +75,13 @@
     .nav-mini .sidebar-footer{padding:16px 0 0;text-align:center}
     #nav-toggle{background:none;border:1px solid var(--border);color:var(--text2);border-radius:8px;padding:4px 10px;cursor:pointer;font-size:13px}
     #nav-toggle:hover{background:var(--bg3);color:var(--text)}
+    #theme-toggle{background:none;border:1px solid var(--border);color:var(--text2);border-radius:8px;padding:4px 10px;cursor:pointer;font-size:13px;margin-left:6px}
+    #theme-toggle:hover{background:var(--bg3);color:var(--text)}
+    .nav-mini #theme-toggle{display:block;margin:8px auto 0}
 
     /* Main */
     .main{margin-left:var(--sidebar-w);flex:1;min-height:100vh;display:flex;flex-direction:column;}
-    .topbar{position:sticky;top:0;z-index:50;height:64px;background:rgba(13,15,20,.8);backdrop-filter:blur(12px);border-bottom:1px solid var(--border);display:flex;align-items:center;padding:0 32px;position:sticky;top:0;z-index:50;gap:16px;}
+    .topbar{position:sticky;top:0;z-index:50;height:64px;background:rgba(var(--bg-rgb),.8);backdrop-filter:blur(12px);border-bottom:1px solid var(--border);display:flex;align-items:center;padding:0 32px;position:sticky;top:0;z-index:50;gap:16px;}
     .topbar-title{font-size:16px;font-weight:600;flex:1;}
     .topbar-subtitle{font-size:12px;color:var(--text3);font-family:'JetBrains Mono',monospace;}
     .page-content{flex:1;padding:32px;max-width:1200px;width:100%;margin:0 auto;}
@@ -66,14 +96,14 @@
     /* Boutons */
     .btn{display:inline-flex;align-items:center;gap:8px;padding:10px 20px;border-radius:var(--radius);font-size:13.5px;font-weight:600;cursor:pointer;border:none;transition:all var(--transition);font-family:'Inter',sans-serif;text-decoration:none;}
     .btn-primary{background:linear-gradient(135deg,var(--accent),#5146e0);color:#fff;box-shadow:0 4px 16px var(--accent-glow);}
-    .btn-primary:hover{transform:translateY(-1px);box-shadow:0 6px 24px rgba(108,99,255,.4);}
+    .btn-primary:hover{transform:translateY(-1px);box-shadow:0 6px 24px rgba(var(--accent-rgb),.4);}
     .btn-secondary{background:var(--bg3);color:var(--text);border:1px solid var(--border);}
-    .btn-secondary:hover{background:#252838;border-color:var(--accent);}
+    .btn-secondary:hover{background:var(--bg-hover);border-color:var(--accent);}
     .btn-ghost{background:transparent;color:var(--text2);border:1px solid var(--border);}
     .btn-ghost:hover{background:var(--bg3);color:var(--text);}
     .btn-sm{padding:7px 14px;font-size:12px;}
     .btn-lg{padding:14px 28px;font-size:15px;}
-    .btn-success{background:linear-gradient(135deg,#2eb870,var(--green));color:#0D0F14;}
+    .btn-success{background:linear-gradient(135deg,#2eb870,var(--green));color:var(--on-green);}
     .btn-danger{background:linear-gradient(135deg,#e04444,var(--red));color:#fff;}
 
     /* Inputs */
@@ -84,10 +114,10 @@
 
     /* Badges */
     .badge{display:inline-flex;align-items:center;gap:4px;padding:3px 10px;border-radius:20px;font-size:11px;font-weight:600;}
-    .badge-green{background:rgba(61,220,132,.12);color:var(--green);}
-    .badge-yellow{background:rgba(255,209,102,.12);color:var(--yellow);}
-    .badge-red{background:rgba(255,107,107,.12);color:var(--red);}
-    .badge-purple{background:rgba(108,99,255,.12);color:var(--accent2);}
+    .badge-green{background:rgba(var(--green-rgb),.12);color:var(--green);}
+    .badge-yellow{background:rgba(var(--yellow-rgb),.12);color:var(--yellow);}
+    .badge-red{background:rgba(var(--red-rgb),.12);color:var(--red);}
+    .badge-purple{background:rgba(var(--accent-rgb),.12);color:var(--accent2);}
 
     /* Progress */
     .progress-bar{height:6px;background:var(--bg3);border-radius:99px;overflow:hidden;}
@@ -107,7 +137,7 @@
     /* Loader */
     .loader{display:inline-block;width:18px;height:18px;border:2px solid var(--border);border-top-color:var(--accent);border-radius:50%;animation:spin .7s linear infinite;}
     @keyframes spin{to{transform:rotate(360deg);}}
-    .loading-overlay{display:none;position:fixed;inset:0;background:rgba(13,15,20,.75);backdrop-filter:blur(4px);z-index:500;align-items:center;justify-content:center;flex-direction:column;gap:16px;}
+    .loading-overlay{display:none;position:fixed;inset:0;background:rgba(var(--bg-rgb),.75);backdrop-filter:blur(4px);z-index:500;align-items:center;justify-content:center;flex-direction:column;gap:16px;}
     .loading-overlay.active{display:flex;}
     .loading-text{font-size:14px;color:var(--text2);font-family:'JetBrains Mono',monospace;}
 
@@ -136,7 +166,7 @@
     .md-output table{width:100%;border-collapse:collapse;margin:16px 0;font-size:13.5px;}
     .md-output th{background:var(--bg3);padding:10px 14px;text-align:left;font-weight:600;border:1px solid var(--border);}
     .md-output td{padding:9px 14px;border:1px solid var(--border);vertical-align:top;}
-    .md-output tr:hover td{background:rgba(255,255,255,.02);}
+    .md-output tr:hover td{background:rgba(var(--fg-rgb),.02);}
 
     {% block extra_style %}{% endblock %}
   </style>
@@ -173,6 +203,7 @@
   <div class="sidebar-footer">
     <div class="version">Propulsé par Gemini</div>
     <button id="nav-toggle" title="Réduire / agrandir le menu">«</button>
+    <button id="theme-toggle" type="button" aria-label="Changer le thème">◐</button>
   </div>
 </aside>
 
@@ -248,6 +279,30 @@ async function apiPost(url, body) {
     maj();
   };
   maj();
+})();
+</script>
+<script>
+(function(){
+  var b = document.getElementById('theme-toggle');
+  if (!b) return;
+  var ORDRE = ['dark', 'light', 'auto'];
+  var ICONES = {dark: '☾', light: '☀', auto: '◐'};
+  var LIB = {dark: 'sombre', light: 'clair', auto: 'auto (système)'};
+  function lire() { try { var t = localStorage.getItem('theme'); return ORDRE.indexOf(t) >= 0 ? t : 'dark'; } catch (e) { return 'dark'; } }
+  function ecrire(t) { try { localStorage.setItem('theme', t); } catch (e) {} }
+  function appliquer(t) {
+    var r = document.documentElement;
+    if (t === 'auto') r.removeAttribute('data-theme'); else r.setAttribute('data-theme', t);
+    b.textContent = ICONES[t];
+    b.title = 'Thème : ' + LIB[t] + ' (clic pour changer)';
+  }
+  var cur = lire();
+  appliquer(cur);
+  b.addEventListener('click', function () {
+    cur = ORDRE[(ORDRE.indexOf(cur) + 1) % ORDRE.length];
+    ecrire(cur);
+    appliquer(cur);
+  });
 })();
 </script>
 {% block scripts %}{% endblock %}

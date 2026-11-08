@@ -62,7 +62,7 @@
 }
 .quick-action:hover {
   border-color: var(--accent);
-  background: rgba(108,99,255,.06);
+  background: rgba(var(--accent-rgb),.06);
   transform: translateY(-2px);
 }
 .quick-action .qa-icon { font-size: 24px; }
@@ -190,7 +190,7 @@
 
     {% if stats.due_today > 0 %}
     <!-- Alerte révision -->
-    <div style="background:rgba(255,107,107,.08);border:1px solid rgba(255,107,107,.25);border-radius:var(--radius-lg);padding:20px;display:flex;align-items:center;gap:16px;">
+    <div style="background:rgba(var(--red-rgb),.08);border:1px solid rgba(var(--red-rgb),.25);border-radius:var(--radius-lg);padding:20px;display:flex;align-items:center;gap:16px;">
       <span style="font-size:28px;">⏰</span>
       <div>
         <div style="font-size:14px;font-weight:600;color:var(--red);margin-bottom:4px;">

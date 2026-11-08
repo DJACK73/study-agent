@@ -250,10 +250,10 @@ function afficherPlanEditeur() {
           onmouseleave="this.style.background='none'">↓</button>
 
         <button onclick="supprimerSection(${i})" title="Supprimer"
-          style="background:none;border:1px solid rgba(255,107,107,.3);border-radius:6px;
+          style="background:none;border:1px solid rgba(var(--red-rgb),.3);border-radius:6px;
                  color:var(--red);cursor:pointer;padding:4px 7px;font-size:12px;
                  transition:all .15s;"
-          onmouseenter="this.style.background='rgba(255,107,107,.1)'"
+          onmouseenter="this.style.background='rgba(var(--red-rgb),.1)'"
           onmouseleave="this.style.background='none'">✕</button>
       </div>
     </div>
@@ -523,7 +523,7 @@ function updateQcm() {
           onclick="answerQcm(${i})" ${answered ? 'disabled' : ''}>${c}</button>
       `).join('')}
     </div>
-    ${answered ? `<div style="background:rgba(108,99,255,.08);border:1px solid rgba(108,99,255,.2);border-radius:var(--radius);padding:12px 16px;font-size:13.5px;">
+    ${answered ? `<div style="background:rgba(var(--accent-rgb),.08);border:1px solid rgba(var(--accent-rgb),.2);border-radius:var(--radius);padding:12px 16px;font-size:13.5px;">
       ℹ️ ${q.explication}
     </div>` : ''}
   `;
@@ -591,7 +591,7 @@ function ouvrirSelecteurPDF(callback) {
     modal.id = 'pdf-modal';
     modal.style.cssText = `
       display:none; position:fixed; inset:0; z-index:900;
-      background:rgba(13,15,20,.85); backdrop-filter:blur(6px);
+      background:rgba(var(--bg-rgb),.85); backdrop-filter:blur(6px);
       align-items:center; justify-content:center; padding:24px;`;
     modal.innerHTML = `
       <div style="background:var(--bg2);border:1px solid var(--border);
@@ -609,7 +609,7 @@ function ouvrirSelecteurPDF(callback) {
               style="padding:18px;background:var(--bg3);border:1px solid var(--border);
                      border-radius:var(--radius-lg);cursor:pointer;transition:all .2s;
                      display:flex;flex-direction:column;gap:6px;"
-              onmouseenter="this.style.borderColor='${m.couleur}';this.style.background='rgba(255,255,255,.03)'"
+              onmouseenter="this.style.borderColor='${m.couleur}';this.style.background='rgba(var(--fg-rgb),.03)'"
               onmouseleave="this.style.borderColor='var(--border)';this.style.background='var(--bg3)'">
               <span style="font-size:24px;">${m.icon}</span>
               <span style="font-size:14px;font-weight:600;color:var(--text);">${m.nom}</span>
@@ -720,7 +720,7 @@ function ouvrirEditeur() {
     modal.id = 'editeur-modal';
     modal.style.cssText = `
       display:none; position:fixed; inset:0; z-index:800;
-      background:rgba(13,15,20,.85); backdrop-filter:blur(6px);
+      background:rgba(var(--bg-rgb),.85); backdrop-filter:blur(6px);
       align-items:center; justify-content:center; padding:24px;`;
     modal.innerHTML = `
       <div style="background:var(--bg2);border:1px solid var(--border);
@@ -823,7 +823,7 @@ async function lancerTest() {
     modal.id = 'test-modal';
     modal.style.cssText = `
       display:none; position:fixed; inset:0; z-index:800;
-      background:rgba(13,15,20,.85); backdrop-filter:blur(6px);
+      background:rgba(var(--bg-rgb),.85); backdrop-filter:blur(6px);
       align-items:center; justify-content:center; padding:24px;`;
     modal.innerHTML = `
       <div style="background:var(--bg2);border:1px solid var(--border);
