@@ -102,7 +102,7 @@ def test_erreur_gemini_code(env, monkeypatch, code, attendu):
 def test_prompts_nettoyes():
     from modules import generator
     assert 2 not in generator.MODES and 1 in generator.MODES
-    assert "sans jamais écrire" in generator.SYSTEM_PROMPT
+    assert "jamais" in generator.SYSTEM_PROMPT and "réflexion" in generator.SYSTEM_PROMPT
 
 
 def test_quiz_depuis_discussion(env):
