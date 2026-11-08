@@ -561,28 +561,28 @@ const PDF_MODELES_INFO = [
     icon: '🎓',
     nom: 'Académique',
     desc: 'Noir & blanc · Times New Roman · sobre',
-    couleur: '#555970'
+    couleur: 'var(--text3)'
   },
   {
     id: 'moderne',
     icon: '✨',
     nom: 'Moderne',
     desc: 'Couleurs · Inter · accents violets',
-    couleur: '#6C63FF'
+    couleur: 'var(--accent)'
   },
   {
     id: 'medical',
     icon: '🏥',
     nom: 'Médical',
     desc: 'Tableaux · sections colorées · clinique',
-    couleur: '#3DDC84'
+    couleur: 'var(--green)'
   },
   {
     id: 'minimaliste',
     icon: '📋',
     nom: 'Minimaliste',
     desc: 'Très épuré · beaucoup d\'espace · lecture',
-    couleur: '#FFD166'
+    couleur: 'var(--yellow)'
   }
 ];
 
@@ -612,7 +612,7 @@ function ouvrirSelecteurPDF(callback) {
               style="padding:18px;background:var(--bg3);border:1px solid var(--border);
                      border-radius:var(--radius-lg);cursor:pointer;transition:all .2s;
                      display:flex;flex-direction:column;gap:6px;"
-              onmouseenter="this.style.borderColor='${m.couleur}';this.style.background='rgba(var(--fg-rgb),.03)'"
+              onmouseenter="this.style.borderColor='${m.couleur}';this.style.background='var(--bg3)'"
               onmouseleave="this.style.borderColor='var(--border)';this.style.background='var(--bg3)'">
               <span style="font-size:24px;">${m.icon}</span>
               <span style="font-size:14px;font-weight:600;color:var(--text);">${m.nom}</span>
