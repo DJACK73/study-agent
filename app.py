@@ -90,6 +90,9 @@ def _erreur(e):
     if isinstance(e, TimeoutError):
         logging.warning("Gemini timeout")
         return jsonify({"error": "Gemini ne repond pas, reessaie"}), 504
+    if isinstance(e, ConnectionError):
+        logging.warning("Gemini injoignable")
+        return jsonify({"error": "Gemini injoignable, verifie ta connexion"}), 503
     logging.exception("Erreur route API")
     return jsonify({"error": str(e)}), 500
 

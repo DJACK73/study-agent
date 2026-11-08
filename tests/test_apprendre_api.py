@@ -188,3 +188,10 @@ def test_expose_section_plan_ou_index_hors_limites(env, plan, idx):
     _, c, _ = env
     r = c.post("/api/expose/section", json={"sujet": "s", "plan": plan, "index": idx})
     assert r.status_code == 400
+
+
+def test_erreur_connexion_injoignable(env):
+    app_mod, _, _ = env
+    with app_mod.app.app_context():
+        rep, code = app_mod._erreur(ConnectionError("x"))
+    assert code == 503 and "injoignable" in rep.get_json()["error"]
