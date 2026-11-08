@@ -6,8 +6,15 @@
 {% block extra_style %}
 .grid-2.apprendre-grid{grid-template-columns:5fr 7fr;}
 .apprendre-grid > *{min-width:0;}
-.col-gauche{position:sticky;top:80px;max-height:calc(100vh - 100px);overflow-y:auto;padding-right:4px;}
-@media(max-width:900px){.col-gauche{position:static;max-height:none;overflow:visible;}}
+body{height:100vh;height:100dvh;overflow:hidden;}
+.main{min-height:0;height:100vh;height:100dvh;}
+.page-content{min-height:0;display:flex;flex-direction:column;overflow:hidden;overflow:clip;padding-top:20px;padding-bottom:16px;}
+.grid-2.apprendre-grid{flex:1;min-height:0;grid-template-rows:minmax(0,1fr);align-items:stretch;}
+.col-gauche{min-height:0;overflow-y:auto;padding-right:6px;}
+.col-gauche > *{flex-shrink:0;}
+#result-panel{min-height:0;overflow-y:auto;padding-right:6px;}
+.gen-bar{position:sticky;bottom:0;z-index:5;padding:12px 0 4px;background:linear-gradient(to top,var(--bg) 70%,transparent);}
+@media(max-width:900px){body{height:auto;overflow:auto;}.main{height:auto;min-height:100vh;}.page-content{overflow:visible;display:block;}.col-gauche,#result-panel{overflow:visible;}.grid-2.apprendre-grid{grid-template-rows:none;}}
 @media(max-width:900px){.grid-2.apprendre-grid{grid-template-columns:1fr;}}
 .acc > summary{cursor:pointer;list-style:none;display:flex;align-items:center;font-size:15px;font-weight:700;}
 .acc > summary::-webkit-details-marker{display:none;}
@@ -143,8 +150,8 @@
 {% endblock %}
 
 {% block content %}
-{% include "_guide_formats.html" %}
-<div class="grid-2 apprendre-grid" style="gap:24px;align-items:start;">
+<div style="flex:none;max-height:35vh;overflow-y:auto;">{% include "_guide_formats.html" %}</div>
+<div class="grid-2 apprendre-grid" style="gap:24px;">
 
   <!-- Panneau gauche : configuration -->
   <div class="col-gauche" style="display:flex;flex-direction:column;gap:20px;">
@@ -182,7 +189,7 @@
     </details>
 
     <!-- Contenu du cours -->
-    <details class="card acc" id="acc-cours" open>
+    <details class="card acc" id="acc-cours">
       <summary>2. Contenu du cours <span class="sum" id="sum-cours">vide</span></summary>
 
       <div class="input-tabs">
@@ -272,9 +279,11 @@
       <textarea class="textarea" id="mon-plan" placeholder="I. Introduction&#10;II. Causes&#10;III. Traitement&#10;IV. Conclusion" style="min-height:120px;"></textarea>
     </details>
 
-    <button class="btn btn-primary btn-lg" onclick="lancer()" style="width:100%;justify-content:center;">
-      ✨ Générer
-    </button>
+    <div class="gen-bar">
+      <button class="btn btn-primary btn-lg" onclick="lancer()" style="width:100%;justify-content:center;">
+        ✨ Générer
+      </button>
+    </div>
   </div>
 
   <!-- Panneau droit : résultats -->
