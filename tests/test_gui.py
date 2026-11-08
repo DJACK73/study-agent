@@ -24,3 +24,9 @@ def test_dashboard_sans_texte_obsolete():
 def test_contexte_sans_exemple():
     m = re.search(r'id="contexte"[^>]*>', lire("templates/apprendre.html"))
     assert m and "Ex:" not in m.group(0)
+
+
+def test_pas_de_regenerer_sur_flashcards():
+    html = lire("templates/apprendre.html")
+    m = re.search(r'id="result-flashcards".*?id="result-qcm"', html, re.S)
+    assert m and "regenerer()" not in m.group(0)

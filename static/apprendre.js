@@ -1040,7 +1040,10 @@ function grow(el) {
   el.style.height = 'auto';
   el.style.height = Math.min(el.scrollHeight + 2, window.innerHeight * 0.5) + 'px';
 }
-function regenerer() { lancer(); }
+function regenerer() {
+  if (currentMode === 3) { showToast('Pas de régénération pour les flashcards : elles sont déjà sauvegardées', 'info'); return; }
+  lancer();
+}
 (function () {
   const m = parseInt(new URLSearchParams(location.search).get('mode'), 10);
   if (![2, 3, 4, 9, 11].includes(m)) return;
