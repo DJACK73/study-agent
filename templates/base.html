@@ -5,72 +5,75 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
   <title>{% block title %}Study Agent{% endblock %}</title>
   <link rel="preconnect" href="https://fonts.googleapis.com"/>
-  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=JetBrains+Mono:wght@400;600&display=swap" rel="stylesheet"/>
+  <link href="https://fonts.googleapis.com/css2?family=Figtree:wght@400;500;600;700&family=Fraunces:opsz,wght@9..144,500;9..144,600&family=Inter:wght@300;400;500;600;700&family=JetBrains+Mono:wght@400;600&display=swap" rel="stylesheet"/>
   <script>try{var _t=localStorage.getItem('theme')||'dark';if(_t!=='auto')document.documentElement.setAttribute('data-theme',_t==='light'?'light':'dark');}catch(e){document.documentElement.setAttribute('data-theme','dark');}</script>
   <style>
     *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
     :root {
-      --bg:#0D0F14; --bg2:#13161E; --bg3:#1E2130; --border:#2A2D3E; --bg-hover:#252838;
-      --accent:#6C63FF; --accent2:#9B8FFF; --accent-rgb:108,99,255; --accent-glow:rgba(var(--accent-rgb),.25);
-      --green:#3DDC84; --green-rgb:61,220,132; --on-green:#0D0F14;
-      --yellow:#FFD166; --yellow-rgb:255,209,102;
-      --red:#FF6B6B; --red-rgb:255,107,107;
-      --text:#E8EAF0; --text2:#9094A8; --text3:#555970;
-      --bg-rgb:13,15,20; --fg-rgb:255,255,255;
+      --bg:#262624; --bg2:#30302E; --bg3:#3A3935; --border:#4A4944; --bg-hover:#44433F;
+      --accent:#6CC0AD; --accent2:#8FD3C3; --accent-rgb:108,192,173; --on-accent:#0F1F1B; --accent-glow:rgba(var(--accent-rgb),.25);
+      --green:#7BC47F; --green-rgb:123,196,127; --on-green:#14251A;
+      --yellow:#E0A458; --yellow-rgb:224,164,88;
+      --red:#E07A6F; --red-rgb:224,122,111;
+      --text:#FAF9F5; --text2:#C2C0B6; --text3:#9B9A91;
+      --bg-rgb:38,38,36; --fg-rgb:255,255,255;
       --radius:12px; --radius-lg:18px; --sidebar-w:240px;
       --transition:.2s cubic-bezier(.4,0,.2,1);
       color-scheme:dark;
     }
     :root[data-theme="light"] {
-      --bg:#F6F5F2; --bg2:#FFFFFF; --bg3:#EEEDE8; --border:#DDDBD3; --bg-hover:#E6E4DD;
-      --accent:#5B52E8; --accent2:#4A41D6; --accent-rgb:91,82,232;
+      --bg:#F7F5F1; --bg2:#FFFFFF; --bg3:#F0EDE7; --border:#E2DDD3; --bg-hover:#E8E4DB;
+      --accent:#1F7A6A; --accent2:#176555; --accent-rgb:31,122,106; --on-accent:#FFFFFF;
       --green:#14733F; --green-rgb:20,115,63; --on-green:#FFFFFF;
       --yellow:#8A5D00; --yellow-rgb:138,93,0;
       --red:#C42B2B; --red-rgb:196,43,43;
-      --text:#1A1C26; --text2:#4F5367; --text3:#686C80;
-      --bg-rgb:246,245,242; --fg-rgb:0,0,0;
+      --text:#1E1B16; --text2:#524C42; --text3:#6B6559;
+      --bg-rgb:247,245,241; --fg-rgb:0,0,0;
       color-scheme:light;
     }
     @media (prefers-color-scheme: light) {
       :root:not([data-theme]) {
-      --bg:#F6F5F2; --bg2:#FFFFFF; --bg3:#EEEDE8; --border:#DDDBD3; --bg-hover:#E6E4DD;
-      --accent:#5B52E8; --accent2:#4A41D6; --accent-rgb:91,82,232;
+      --bg:#F7F5F1; --bg2:#FFFFFF; --bg3:#F0EDE7; --border:#E2DDD3; --bg-hover:#E8E4DB;
+      --accent:#1F7A6A; --accent2:#176555; --accent-rgb:31,122,106; --on-accent:#FFFFFF;
       --green:#14733F; --green-rgb:20,115,63; --on-green:#FFFFFF;
       --yellow:#8A5D00; --yellow-rgb:138,93,0;
       --red:#C42B2B; --red-rgb:196,43,43;
-      --text:#1A1C26; --text2:#4F5367; --text3:#686C80;
-      --bg-rgb:246,245,242; --fg-rgb:0,0,0;
+      --text:#1E1B16; --text2:#524C42; --text3:#6B6559;
+      --bg-rgb:247,245,241; --fg-rgb:0,0,0;
       color-scheme:light;
       }
     }
     html,body{height:100%;}
-    body{font-family:'Inter',sans-serif;background:var(--bg);color:var(--text);display:flex;min-height:100vh;overflow-x:hidden;}
+    svg.i{width:18px;height:18px;fill:none;stroke:currentColor;stroke-width:1.75;stroke-linecap:round;stroke-linejoin:round;flex:none;}
+    body{font-family:'Figtree',system-ui,sans-serif;background:var(--bg);color:var(--text);display:flex;min-height:100vh;overflow-x:hidden;}
 
     /* Sidebar */
     .sidebar{width:var(--sidebar-w);min-height:100vh;background:var(--bg2);border-right:1px solid var(--border);display:flex;flex-direction:column;position:fixed;top:0;left:0;z-index:100;padding:0 0 24px;}
     .sidebar-logo{padding:28px 24px 24px;border-bottom:1px solid var(--border);margin-bottom:12px;}
-    .logo-icon{width:38px;height:38px;background:linear-gradient(135deg,var(--accent),var(--accent2));border-radius:10px;display:flex;align-items:center;justify-content:center;font-size:18px;margin-bottom:12px;box-shadow:0 4px 16px var(--accent-glow);}
+    .logo-icon{width:38px;height:38px;background:var(--accent);color:var(--on-accent);border-radius:10px;display:flex;align-items:center;justify-content:center;font-size:18px;margin-bottom:12px;box-shadow:0 4px 16px var(--accent-glow);}
     .logo-name{font-size:15px;font-weight:700;letter-spacing:-.2px;}
-    .logo-sub{font-size:11px;color:var(--text3);margin-top:2px;font-family:'JetBrains Mono',monospace;}
+    .logo-sub{font-size:11px;color:var(--text3);margin-top:2px;font-variant-numeric:tabular-nums;}
     .nav-section{padding:0 12px;margin-bottom:6px;}
     .nav-label{font-size:10px;font-weight:600;text-transform:uppercase;letter-spacing:1.2px;color:var(--text3);padding:8px 12px 6px;}
     .nav-item{display:flex;align-items:center;gap:10px;padding:10px 12px;border-radius:var(--radius);text-decoration:none;color:var(--text2);font-size:13.5px;font-weight:500;transition:all var(--transition);position:relative;}
     .nav-item:hover{background:var(--bg3);color:var(--text);}
-    .nav-item.active{background:linear-gradient(135deg,rgba(var(--accent-rgb),.18),rgba(var(--accent-rgb),.08));color:var(--accent2);border:1px solid rgba(var(--accent-rgb),.2);}
+    .nav-item.active{background:var(--bg3);color:var(--text);}
+    .nav-item.active .nav-icon{color:var(--accent2);}
     .nav-item.active::before{content:'';position:absolute;left:0;top:20%;bottom:20%;width:3px;background:var(--accent);border-radius:0 3px 3px 0;}
-    .nav-icon{font-size:16px;width:20px;text-align:center;}
-    .nav-badge{margin-left:auto;background:var(--accent);color:#fff;font-size:10px;font-weight:700;padding:2px 7px;border-radius:20px;font-family:'JetBrains Mono',monospace;}
+    .nav-icon{width:20px;height:20px;display:grid;place-items:center;}
+    .nav-badge{margin-left:auto;background:var(--accent);color:var(--on-accent);font-size:10px;font-weight:700;padding:2px 7px;border-radius:20px;font-variant-numeric:tabular-nums;}
     .nav-badge.red{background:var(--red);}
     .nav-badge.green{background:var(--green);color:var(--on-green);}
     .sidebar-footer{margin-top:auto;padding:16px 24px 0;border-top:1px solid var(--border);}
-    .sidebar-footer .version{font-size:11px;color:var(--text3);font-family:'JetBrains Mono',monospace;}
+    .sidebar-footer .version{font-size:11px;color:var(--text3);font-variant-numeric:tabular-nums;}
 
     /* Sidebar repliable */
     body.nav-mini{--sidebar-w:64px}
     .nav-mini .sidebar-logo{padding:20px 0 16px;text-align:center}
     .nav-mini .logo-icon{margin:0 auto 4px}
     .nav-mini .logo-name,.nav-mini .logo-sub,.nav-mini .nav-label,.nav-mini .sidebar-footer .version,.nav-mini .nav-badge{display:none}
-    .nav-mini .nav-item{font-size:0;gap:0;justify-content:center;padding:10px 0}
+    .nav-mini .nav-item{gap:0;justify-content:center;padding:10px 0}
+    .nav-mini .nav-text{display:none}
     .nav-mini .nav-icon{font-size:18px}
     .nav-mini .sidebar-footer{padding:16px 0 0;text-align:center}
     #nav-toggle{background:none;border:1px solid var(--border);color:var(--text2);border-radius:8px;padding:4px 10px;cursor:pointer;font-size:13px}
@@ -83,31 +86,31 @@
     .main{margin-left:var(--sidebar-w);flex:1;min-height:100vh;display:flex;flex-direction:column;}
     .topbar{position:sticky;top:0;z-index:50;height:64px;background:rgba(var(--bg-rgb),.8);backdrop-filter:blur(12px);border-bottom:1px solid var(--border);display:flex;align-items:center;padding:0 32px;position:sticky;top:0;z-index:50;gap:16px;}
     .topbar-title{font-size:16px;font-weight:600;flex:1;}
-    .topbar-subtitle{font-size:12px;color:var(--text3);font-family:'JetBrains Mono',monospace;}
+    .topbar-subtitle{font-size:12px;color:var(--text3);font-variant-numeric:tabular-nums;}
     .page-content{flex:1;padding:32px;max-width:1200px;width:100%;margin:0 auto;}
 
     /* Cards */
     .card{background:var(--bg2);border:1px solid var(--border);border-radius:var(--radius-lg);padding:24px;transition:border-color var(--transition);}
     .card:hover{border-color:var(--bg3);}
     .card-title{font-size:13px;font-weight:600;color:var(--text2);text-transform:uppercase;letter-spacing:.8px;margin-bottom:8px;}
-    .card-value{font-size:32px;font-weight:700;font-family:'JetBrains Mono',monospace;line-height:1;}
+    .card-value{font-size:32px;font-weight:700;font-variant-numeric:tabular-nums;line-height:1;}
     .card-sub{font-size:12px;color:var(--text3);margin-top:6px;}
 
     /* Boutons */
-    .btn{display:inline-flex;align-items:center;gap:8px;padding:10px 20px;border-radius:var(--radius);font-size:13.5px;font-weight:600;cursor:pointer;border:none;transition:all var(--transition);font-family:'Inter',sans-serif;text-decoration:none;}
-    .btn-primary{background:linear-gradient(135deg,var(--accent),#5146e0);color:#fff;box-shadow:0 4px 16px var(--accent-glow);}
-    .btn-primary:hover{transform:translateY(-1px);box-shadow:0 6px 24px rgba(var(--accent-rgb),.4);}
+    .btn{display:inline-flex;align-items:center;gap:8px;padding:10px 20px;border-radius:var(--radius);font-size:13.5px;font-weight:600;cursor:pointer;border:none;transition:all var(--transition);font-family:'Figtree',system-ui,sans-serif;text-decoration:none;}
+    .btn-primary{background:var(--accent);color:var(--on-accent);}
+    .btn-primary:hover{filter:brightness(1.07);}
     .btn-secondary{background:var(--bg3);color:var(--text);border:1px solid var(--border);}
     .btn-secondary:hover{background:var(--bg-hover);border-color:var(--accent);}
     .btn-ghost{background:transparent;color:var(--text2);border:1px solid var(--border);}
     .btn-ghost:hover{background:var(--bg3);color:var(--text);}
     .btn-sm{padding:7px 14px;font-size:12px;}
     .btn-lg{padding:14px 28px;font-size:15px;}
-    .btn-success{background:linear-gradient(135deg,#2eb870,var(--green));color:var(--on-green);}
-    .btn-danger{background:linear-gradient(135deg,#e04444,var(--red));color:#fff;}
+    .btn-success{background:var(--green);color:var(--on-green);}
+    .btn-danger{background:var(--red);color:var(--on-accent);}
 
     /* Inputs */
-    .input,.textarea,.select{background:var(--bg3);border:1px solid var(--border);border-radius:var(--radius);color:var(--text);font-family:'Inter',sans-serif;font-size:14px;padding:12px 16px;transition:border-color var(--transition);width:100%;outline:none;}
+    .input,.textarea,.select{background:var(--bg3);border:1px solid var(--border);border-radius:var(--radius);color:var(--text);font-family:'Figtree',system-ui,sans-serif;font-size:14px;padding:12px 16px;transition:border-color var(--transition);width:100%;outline:none;}
     .input:focus,.textarea:focus,.select:focus{border-color:var(--accent);box-shadow:0 0 0 3px var(--accent-glow);}
     .textarea{resize:vertical;min-height:120px;line-height:1.6;}
     .input::placeholder,.textarea::placeholder{color:var(--text3);}
@@ -121,10 +124,10 @@
 
     /* Progress */
     .progress-bar{height:6px;background:var(--bg3);border-radius:99px;overflow:hidden;}
-    .progress-fill{height:100%;border-radius:99px;background:linear-gradient(90deg,var(--accent),var(--accent2));transition:width .6s cubic-bezier(.4,0,.2,1);}
-    .progress-fill.green{background:linear-gradient(90deg,#2eb870,var(--green));}
-    .progress-fill.yellow{background:linear-gradient(90deg,#e6a800,var(--yellow));}
-    .progress-fill.red{background:linear-gradient(90deg,#e04444,var(--red));}
+    .progress-fill{height:100%;border-radius:99px;background:var(--accent);transition:width .6s cubic-bezier(.4,0,.2,1);}
+    .progress-fill.green{background:var(--green);}
+    .progress-fill.yellow{background:var(--yellow);}
+    .progress-fill.red{background:var(--red);}
 
     /* Toast */
     #toast-container{position:fixed;bottom:24px;right:24px;z-index:9999;display:flex;flex-direction:column;gap:10px;}
@@ -139,7 +142,7 @@
     @keyframes spin{to{transform:rotate(360deg);}}
     .loading-overlay{display:none;position:fixed;inset:0;background:rgba(var(--bg-rgb),.75);backdrop-filter:blur(4px);z-index:500;align-items:center;justify-content:center;flex-direction:column;gap:16px;}
     .loading-overlay.active{display:flex;}
-    .loading-text{font-size:14px;color:var(--text2);font-family:'JetBrains Mono',monospace;}
+    .loading-text{font-size:14px;color:var(--text2);font-variant-numeric:tabular-nums;}
 
     /* Utils */
     .divider{height:1px;background:var(--border);margin:24px 0;}
@@ -172,32 +175,45 @@
   </style>
 </head>
 <body class="nav-mini">
+<svg width="0" height="0" style="position:absolute" aria-hidden="true">
+ <symbol id="chat" viewBox="0 0 24 24"><path d="M21 12a8 8 0 0 1-11.6 7.1L4 20l1-4.4A8 8 0 1 1 21 12z"/></symbol>
+ <symbol id="home" viewBox="0 0 24 24"><path d="M4 11l8-7 8 7v8a1 1 0 0 1-1 1h-4v-6H9v6H5a1 1 0 0 1-1-1z"/></symbol>
+ <symbol id="book" viewBox="0 0 24 24"><path d="M5 4h10a3 3 0 0 1 3 3v13H8a3 3 0 0 1-3-3z"/><path d="M5 17a3 3 0 0 1 3-3h10"/></symbol>
+ <symbol id="repeat" viewBox="0 0 24 24"><path d="M17 3l3 3-3 3"/><path d="M4 11V9a3 3 0 0 1 3-3h13"/><path d="M7 21l-3-3 3-3"/><path d="M20 13v2a3 3 0 0 1-3 3H4"/></symbol>
+ <symbol id="chart" viewBox="0 0 24 24"><path d="M4 20V10M10 20V4M16 20v-7M22 20H2"/></symbol>
+ <symbol id="doc" viewBox="0 0 24 24"><path d="M7 3h7l5 5v12a1 1 0 0 1-1 1H7a1 1 0 0 1-1-1V4a1 1 0 0 1 1-1z"/><path d="M14 3v5h5M9 13h6M9 17h6"/></symbol>
+ <symbol id="cards" viewBox="0 0 24 24"><rect x="3" y="7" width="14" height="12" rx="2"/><path d="M7 7V5a2 2 0 0 1 2-2h10a2 2 0 0 1 2 2v9a2 2 0 0 1-2 2h-2"/></symbol>
+ <symbol id="check" viewBox="0 0 24 24"><circle cx="12" cy="12" r="9"/><path d="M8 12.5l2.7 2.7L16 9.5"/></symbol>
+ <symbol id="cap" viewBox="0 0 24 24"><path d="M2 9l10-5 10 5-10 5z"/><path d="M6 11.5V16c0 1.5 3 3 6 3s6-1.5 6-3v-4.5"/></symbol>
+ <symbol id="pen" viewBox="0 0 24 24"><path d="M4 20l1-4L16.5 4.5a2 2 0 0 1 3 3L8 19z"/></symbol>
+ <symbol id="spark" viewBox="0 0 24 24"><path d="M12 3l1.8 5.2L19 10l-5.2 1.8L12 17l-1.8-5.2L5 10l5.2-1.8z"/></symbol>
+</svg>
 
 <aside class="sidebar">
   <div class="sidebar-logo">
-    <div class="logo-icon">🧠</div>
+    <div class="logo-icon"><svg class="i"><use href="#spark"/></svg></div>
     <div class="logo-name">Study Agent</div>
     <div class="logo-sub">v2.0</div>
   </div>
   <nav class="nav-section">
     <div class="nav-label">Navigation</div>
     <a href="/discuter" class="nav-item {% if request.path == '/discuter' %}active{% endif %}">
-      <span class="nav-icon">💬</span> Discuter
+      <span class="nav-icon"><svg class="i"><use href="#chat"/></svg></span><span class="nav-text">Discuter</span>
     </a>
     <a href="/" class="nav-item {% if request.path == '/' %}active{% endif %}">
-      <span class="nav-icon">🏠</span> Dashboard
+      <span class="nav-icon"><svg class="i"><use href="#home"/></svg></span><span class="nav-text">Accueil</span>
     </a>
     <a href="/apprendre" class="nav-item {% if request.path == '/apprendre' %}active{% endif %}">
-      <span class="nav-icon">📚</span> Apprendre
+      <span class="nav-icon"><svg class="i"><use href="#book"/></svg></span><span class="nav-text">Apprendre</span>
     </a>
     <a href="/revision" class="nav-item {% if request.path == '/revision' %}active{% endif %}">
-      <span class="nav-icon">🔁</span> Révision
+      <span class="nav-icon"><svg class="i"><use href="#repeat"/></svg></span><span class="nav-text">Révision</span>
       {% if stats is defined and stats.due_today > 0 %}
         <span class="nav-badge red">{{ stats.due_today }}</span>
       {% endif %}
     </a>
     <a href="/stats" class="nav-item {% if request.path == '/stats' %}active{% endif %}">
-      <span class="nav-icon">📊</span> Statistiques
+      <span class="nav-icon"><svg class="i"><use href="#chart"/></svg></span><span class="nav-text">Statistiques</span>
     </a>
   </nav>
   <div class="sidebar-footer">

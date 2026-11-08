@@ -134,6 +134,7 @@ async function lancer() {
 
 
 function showResult(id) {
+  setDone(true);
   document.getElementById(id).style.display = 'block';
   document.getElementById(id).scrollIntoView({ behavior: 'smooth', block: 'start' });
 }
@@ -147,6 +148,8 @@ function copyResult() {
 }
 const RE_CORRIGE = /^[ \t*_#]*-{2,}\s*corrig[ée]\s*-{2,}[ \t*_]*$/im;
 function showTextResult(txt, icon, title) {
+  const rg = document.getElementById('btn-regen');
+  if (rg) rg.style.display = icon === '🎓' ? '' : 'none';
   const old = document.getElementById('btn-corrige');
   if (old) old.remove();
   const m = RE_CORRIGE.exec(txt);
@@ -1021,4 +1024,26 @@ document.getElementById('contexte').addEventListener('input', (e) => {
     document.getElementById('cours-texte').dispatchEvent(new Event('input'));
     showToast('Texte de la discussion chargé : clique sur Générer', 'info');
   } catch (_) {}
+})();
+
+// ── Interface : résumé du panneau gauche, zone de cours, Régénérer, ?mode= ──
+function setDone(on) {
+  const g = document.querySelector('.col-gauche');
+  if (!g) return;
+  g.classList.toggle('done', !!on);
+  if (on) {
+    document.getElementById('recap-f').textContent = document.getElementById('sum-mode').textContent;
+    document.getElementById('recap-s').textContent = imageB64 ? '· image' : '· texte collé';
+  }
+}
+function grow(el) {
+  el.style.height = 'auto';
+  el.style.height = Math.min(el.scrollHeight + 2, window.innerHeight * 0.5) + 'px';
+}
+function regenerer() { lancer(); }
+(function () {
+  const m = parseInt(new URLSearchParams(location.search).get('mode'), 10);
+  if (![2, 3, 4, 9, 11].includes(m)) return;
+  const el = document.querySelector('.mode-card[data-mode="' + m + '"]');
+  if (el) selectMode(m, el);
 })();

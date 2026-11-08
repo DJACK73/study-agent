@@ -16,6 +16,13 @@ body{height:100vh;height:100dvh;overflow:hidden;}
 .gen-bar{position:sticky;bottom:0;z-index:5;padding:12px 0 4px;background:linear-gradient(to top,var(--bg) 70%,transparent);}
 @media(max-width:900px){body{height:auto;overflow:auto;}.main{height:auto;min-height:100vh;}.page-content{overflow:visible;display:block;}.col-gauche,#result-panel{overflow:visible;}.grid-2.apprendre-grid{grid-template-rows:none;}}
 @media(max-width:900px){.grid-2.apprendre-grid{grid-template-columns:1fr;}}
+.recap{display:none;align-items:center;justify-content:space-between;gap:12px;padding:14px 16px;background:var(--bg2);border:1px solid var(--border);border-radius:var(--radius);}
+.recap b{font-weight:600;}
+.recap span{color:var(--text3);}
+.col-gauche.done > details{display:none !important;}
+.col-gauche.done > .recap{display:flex;}
+.mode-card .mode-icon{color:var(--accent2);display:inline-flex;}
+.mode-card .mode-icon svg{width:22px;height:22px;}
 .acc > summary{cursor:pointer;list-style:none;display:flex;align-items:center;font-size:15px;font-weight:700;}
 .acc > summary::-webkit-details-marker{display:none;}
 .acc > summary::after{content:'▾';color:var(--text3);margin-left:12px;}
@@ -125,7 +132,7 @@ body{height:100vh;height:100dvh;overflow:hidden;}
 .fc-label { font-size: 11px; font-weight: 600; text-transform: uppercase; letter-spacing: 1px; color: var(--text3); margin-bottom: 16px; }
 .fc-text { font-size: 17px; font-weight: 500; line-height: 1.5; }
 .fc-hint { font-size: 12px; color: var(--text3); margin-top: 12px; }
-.fc-progress { font-size: 12px; color: var(--text3); font-family: 'JetBrains Mono', monospace; }
+.fc-progress { font-size: 12px; color: var(--text3); font-variant-numeric:tabular-nums; }
 
 /* QCM */
 .qcm-question { font-size: 16px; font-weight: 600; margin-bottom: 20px; line-height: 1.5; }
@@ -156,32 +163,37 @@ body{height:100vh;height:100dvh;overflow:hidden;}
   <!-- Panneau gauche : configuration -->
   <div class="col-gauche" style="display:flex;flex-direction:column;gap:20px;">
 
+    <div class="recap" id="recap">
+      <div><b id="recap-f">QCM</b> <span id="recap-s">· texte collé</span></div>
+      <button class="btn btn-ghost btn-sm" type="button" onclick="setDone(false)">Modifier</button>
+    </div>
+
     <!-- Choix du mode -->
     <details class="card acc" id="acc-mode">
       <summary>1. Choisir un mode <span class="sum" id="sum-mode">QCM</span></summary>
       <div class="mode-grid">
         <div class="mode-card" onclick="selectMode(2,this)" data-mode="2">
-          <span class="mode-icon">📄</span>
+          <span class="mode-icon"><svg class="i"><use href="#doc"/></svg></span>
           <span class="mode-name">Exposé complet</span>
           <span class="mode-desc">Document structuré</span>
         </div>
         <div class="mode-card" onclick="selectMode(3,this)" data-mode="3">
-          <span class="mode-icon">🃏</span>
+          <span class="mode-icon"><svg class="i"><use href="#cards"/></svg></span>
           <span class="mode-name">Flashcards</span>
           <span class="mode-desc">Mémorisation active</span>
         </div>
         <div class="mode-card selected" onclick="selectMode(4,this)" data-mode="4">
-          <span class="mode-icon">✅</span>
+          <span class="mode-icon"><svg class="i"><use href="#check"/></svg></span>
           <span class="mode-name">QCM</span>
           <span class="mode-desc">Questions à choix</span>
         </div>
         <div class="mode-card" onclick="selectMode(9,this)" data-mode="9">
-          <span class="mode-icon">🎓</span>
+          <span class="mode-icon"><svg class="i"><use href="#cap"/></svg></span>
           <span class="mode-name">Mode examen</span>
           <span class="mode-desc">30 points, corrigé</span>
         </div>
         <div class="mode-card" onclick="selectMode(11,this)" data-mode="11">
-          <span class="mode-icon">✍️</span>
+          <span class="mode-icon"><svg class="i"><use href="#pen"/></svg></span>
           <span class="mode-name">Mon plan</span>
           <span class="mode-desc">Exposé sur ta structure</span>
         </div>
@@ -199,7 +211,7 @@ body{height:100vh;height:100dvh;overflow:hidden;}
 
       <!-- Onglet texte -->
       <div id="tab-texte">
-        <textarea class="textarea" id="cours-texte" placeholder="Colle ton cours ici..." style="min-height:160px;"></textarea>
+        <textarea class="textarea" id="cours-texte" placeholder="Colle ton cours, je m'occupe du reste" style="min-height:160px;max-height:50vh;" oninput="grow(this)"></textarea>
       </div>
 
       <!-- Onglet image -->
@@ -224,7 +236,7 @@ body{height:100vh;height:100dvh;overflow:hidden;}
     <details class="card acc" id="ctx-card">
       <summary>3. Contexte (optionnel) <span class="sum" id="sum-ctx">aucun</span></summary>
       <div style="font-size:12px;color:var(--text3);margin-bottom:12px;">Niveau, objectif, type d'examen...</div>
-      <input class="input" id="contexte" placeholder="Ex: Étudiant en 3e année de médecine, examen dans 2 semaines"/>
+      <input class="input" id="contexte" placeholder="Ton niveau, ton examen, ce qui compte pour toi"/>
     </details>
 
     <!-- Longueur exposé (mode 2 uniquement) -->
@@ -295,7 +307,7 @@ body{height:100vh;height:100dvh;overflow:hidden;}
     </div>
     <div id="inline-load" style="display:none;flex-direction:column;align-items:center;justify-content:center;height:300px;gap:14px;color:var(--text2);">
       <div class="loader" style="width:36px;height:36px;border-width:3px;"></div>
-      <span id="inline-load-txt" style="font-family:'JetBrains Mono',monospace;font-size:13px;"></span>
+      <span id="inline-load-txt" style="font-variant-numeric:tabular-nums;font-size:13px;"></span>
       <button class="btn btn-ghost btn-sm" onclick="annulerRequete()">✕ Annuler</button>
     </div>
 
@@ -344,6 +356,7 @@ body{height:100vh;height:100dvh;overflow:hidden;}
       <div class="result-header">
         <span id="result-icon">✨</span>
         <span id="result-title" style="font-size:14px;font-weight:600;flex:1;">Résultat</span>
+        <button id="btn-regen" class="btn btn-ghost btn-sm" type="button" onclick="regenerer()" style="display:none">Régénérer</button>
         <button class="btn btn-ghost btn-sm" onclick="copyResult()">📋 Copier</button>
         <button class="btn btn-ghost btn-sm" onclick="exportPDF()">⬇️ PDF</button>
       </div>
@@ -355,7 +368,8 @@ body{height:100vh;height:100dvh;overflow:hidden;}
       <div class="result-header">
         <span>🃏</span>
         <span style="font-size:14px;font-weight:600;flex:1;">Flashcards</span>
-        <span id="fc-counter" style="font-size:12px;color:var(--text3);font-family:'JetBrains Mono',monospace;"></span>
+        <span id="fc-counter" style="font-size:12px;color:var(--text3);font-variant-numeric:tabular-nums;"></span>
+        <button class="btn btn-ghost btn-sm" type="button" onclick="regenerer()">Régénérer</button>
       </div>
       <div class="result-content">
         <div class="flashcard-container">
@@ -373,7 +387,7 @@ body{height:100vh;height:100dvh;overflow:hidden;}
         </div>
         <div style="display:flex;gap:12px;margin-top:20px;justify-content:center;align-items:center;">
           <button class="btn btn-ghost" onclick="prevCard()">← Précédente</button>
-          <span id="fc-idx" style="font-size:13px;color:var(--text3);font-family:'JetBrains Mono',monospace;"></span>
+          <span id="fc-idx" style="font-size:13px;color:var(--text3);font-variant-numeric:tabular-nums;"></span>
           <button class="btn btn-ghost" onclick="nextCard()">Suivante →</button>
         </div>
         <div style="display:flex;gap:12px;margin-top:12px;justify-content:center;">
@@ -401,7 +415,8 @@ body{height:100vh;height:100dvh;overflow:hidden;}
       <div class="result-header">
         <span>✅</span>
         <span style="font-size:14px;font-weight:600;flex:1;">QCM</span>
-        <span id="qcm-counter" style="font-size:12px;color:var(--text3);font-family:'JetBrains Mono',monospace;"></span>
+        <span id="qcm-counter" style="font-size:12px;color:var(--text3);font-variant-numeric:tabular-nums;"></span>
+        <button class="btn btn-ghost btn-sm" type="button" onclick="regenerer()">Régénérer</button>
       </div>
       <div class="result-content">
         <div id="qcm-content"></div>
