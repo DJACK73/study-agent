@@ -30,6 +30,7 @@ body{height:100vh;height:100dvh;overflow:hidden;}
 .acc[open] > summary::after{content:'▴';}
 .acc .sum{font-weight:400;font-size:13px;color:var(--text3);margin-left:auto;}
 .mode-grid { display: grid; grid-template-columns: repeat(3,1fr); gap: 12px; margin-bottom: 24px; }
+@media(max-width:480px){.mode-grid{grid-template-columns:repeat(2,1fr);}}
 .mode-card {
   padding: 16px;
   background: var(--bg2);

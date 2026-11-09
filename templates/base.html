@@ -156,6 +156,33 @@
     .fade-in{animation:fadeIn .35s ease;}
     @keyframes fadeIn{from{opacity:0;transform:translateY(8px);}to{opacity:1;transform:translateY(0);}}
 
+    @media (max-width:860px){
+      body,body.nav-mini{--sidebar-w:0px;}
+      .sidebar{width:100%;min-height:0;height:calc(60px + env(safe-area-inset-bottom));top:auto;bottom:0;border-right:none;border-top:1px solid var(--border);flex-direction:row;align-items:stretch;padding:0 0 env(safe-area-inset-bottom);}
+      .sidebar-logo,.nav-label,#nav-toggle,.sidebar-footer .version,.nav-mini .sidebar-footer .version{display:none;}
+      .nav-section{display:flex;flex:1;padding:0 4px;margin:0;gap:2px;}
+      .nav-item,.nav-mini .nav-item{flex:1;min-width:0;flex-direction:column;justify-content:center;align-items:center;gap:2px;padding:6px 2px;font-size:10px;border-radius:8px;}
+      .nav-text,.nav-mini .nav-text{display:block;max-width:100%;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}
+      .nav-item.active::before{left:25%;right:25%;top:0;bottom:auto;width:auto;height:3px;border-radius:0 0 3px 3px;}
+      .nav-badge,.nav-mini .nav-badge{display:inline-block;position:absolute;top:2px;left:calc(50% + 6px);margin:0;font-size:9px;padding:1px 5px;}
+      .sidebar-footer,.nav-mini .sidebar-footer{margin:0;padding:0 6px;border-top:none;display:flex;align-items:center;}
+      #theme-toggle,.nav-mini #theme-toggle{display:block;margin:0;}
+      .main{margin-left:0;padding-bottom:calc(60px + env(safe-area-inset-bottom));}
+      .topbar{height:52px;padding:0 16px;}
+      .topbar-subtitle{display:none;}
+      .page-content{padding:16px;}
+      .grid-2,.grid-3{grid-template-columns:1fr;}
+      .grid-4{grid-template-columns:1fr 1fr;gap:12px;}
+      .card{padding:16px;}
+      .card-value{font-size:26px;}
+      .btn{min-height:40px;}
+      .btn-sm{min-height:36px;}
+      .input,.textarea,.select{font-size:16px;}
+      #toast-container{left:16px;right:16px;bottom:calc(72px + env(safe-area-inset-bottom));}
+      .toast{min-width:0;width:100%;}
+      .md-output table{display:block!important;overflow-x:auto!important;max-width:100%;}
+    }
+
     /* Markdown */
     .md-output{font-size:14.5px;line-height:1.75;color:var(--text);}
     .md-output h1{font-size:22px;font-weight:700;margin:24px 0 12px;color:var(--accent2);border-bottom:1px solid var(--border);padding-bottom:8px;}
