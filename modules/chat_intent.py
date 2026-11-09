@@ -111,3 +111,11 @@ def detecter_image(message: str) -> str | None:
     if len(sujet) < 3 or not mots or mots[0] in _GEN_IMG:
         return None
     return sujet[:80]
+
+
+_VEUT_IMG = re.compile(r"\b(?:montre|montres|montrer|montrez|affiche|affiches|afficher|ajoute|ajoutes|ajouter|avec|en)\s+(?:moi\s+)?(?:(?:des|de|quelques|une|un|les|la|ses|leurs)\s+)*(?:images?|photos?|illustrations?|schemas?)\b")
+
+
+def veut_images(message: str) -> bool:
+    """True si l'etudiant veut des images EN PLUS de la reponse (« ... et montre des images »)."""
+    return bool(_VEUT_IMG.search(_n(message)))

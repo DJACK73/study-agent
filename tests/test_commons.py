@@ -107,3 +107,34 @@ def test_route_images_commons_injoignable(monkeypatch):
 def test_hote_thumb_accepte(monkeypatch):
     _simule(monkeypatch, {"1": _page(1, "CC0", url="https://thumb.wikimedia.org/wikipedia/commons/thumb/0/0/a.png/480px-a.png")})
     assert len(commons.chercher_images("x")) == 1
+
+
+from modules.chat_intent import veut_images
+
+
+@pytest.mark.parametrize("msg,attendu", [
+    ("c'est quoi le paludisme et montres des image", True),
+    ("explique le rein en images", True),
+    ("parle-moi du foie avec des photos", True),
+    ("c'est quoi le paludisme", False),
+    ("Explique cette image", False),
+])
+def test_veut_images(msg, attendu):
+    assert veut_images(msg) is attendu
+
+
+def test_route_reponse_gemini_plus_images(monkeypatch):
+    import app as appmod
+    saved, appels = [], []
+    monkeypatch.setattr("modules.chat_db.lire", lambda cid: {"id": cid, "titre": "Nouvelle discussion", "messages": []})
+    monkeypatch.setattr("modules.chat_db.ajouter_message", lambda *a, **k: saved.append((a, k)) or 1)
+    monkeypatch.setattr("modules.chat_db.renommer", lambda *a: True)
+    monkeypatch.setattr("modules.gemini_handler.analyser_texte", lambda t, p=None, *a, **k: appels.append(t) or "paludisme")
+    monkeypatch.setattr("modules.commons.chercher_images", lambda s, n=3: [IMG])
+    r = appmod.app.test_client().post("/api/chat/conversations/1/messages",
+                                      json={"message": "c'est quoi le paludisme et montres des image"})
+    assert r.status_code == 200
+    d = r.get_json()
+    assert d["images"] == [IMG] and d["reponse"] == "paludisme"
+    assert "image" in appels[-1].lower()
+    assert saved[1][1]["images_json"]

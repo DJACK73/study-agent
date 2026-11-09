@@ -64,7 +64,7 @@
 
   function parseImgs(s) { try { return s ? JSON.parse(s) : null; } catch (e) { return null; } }
 
-  function bulle(role, texte, pdf, err, img, imgs) {
+  function bulle(role, texte, pdf, err, img, imgs, srcs) {
     const m = $('msgs');
     const e = m.querySelector('.chat-empty'); if (e) e.remove();
     const d = document.createElement('div');
@@ -101,6 +101,20 @@
       });
       d.appendChild(g);
     }
+    if (srcs && srcs.length) {
+      const box = document.createElement('div');
+      box.style.cssText = 'margin-top:10px;padding-top:8px;border-top:1px solid var(--border);font-size:12px;color:var(--text3)';
+      srcs.forEach((s, i) => {
+        const row = document.createElement('div');
+        const a = document.createElement('a');
+        a.href = String(s.url || '').slice(0, 4) === 'http' ? s.url : '#';
+        a.target = '_blank'; a.rel = 'noopener noreferrer';
+        a.textContent = '[' + (i + 1) + '] ' + (s.titre || s.url || 'Source');
+        a.style.color = 'var(--accent2)';
+        row.appendChild(a); box.appendChild(row);
+      });
+      d.appendChild(box);
+    }
     m.appendChild(d); m.scrollTop = m.scrollHeight;
     return d;
   }
@@ -136,7 +150,7 @@
       const d = await j(API + '/conversations/' + id);
       cid = id; $('msgs').innerHTML = '';
       (d.messages || []).forEach((m) => bulle(m.role, m.contenu, m.pdf_path, false,
-        m.image_path ? API + '/img/' + encodeURIComponent(m.image_path.split('/').pop()) : null, parseImgs(m.images_json)));
+        m.image_path ? API + '/img/' + encodeURIComponent(m.image_path.split('/').pop()) : null, parseImgs(m.images_json), parseImgs(m.sources_json)));
       if (!(d.messages || []).length) $('msgs').innerHTML = '<div class="chat-empty">Discussion vide.</div>';
       fichier = null; $('file').value = ''; chip();
       actif(true); await liste();
@@ -197,7 +211,7 @@
         opt = {method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify({message: txt, web: $('chk-web').checked}), signal: ctrl.signal};
       }
       const d = await j(API + '/conversations/' + cid + '/messages', opt);
-      att.remove(); bulle('ai', d.reponse, d.pdf_path, false, null, d.images);
+      att.remove(); bulle('ai', d.reponse, d.pdf_path, false, null, d.images, d.sources);
       if (d.web_statut && d.web_statut !== 'ok') showToast('Web : ' + d.web_statut, 'info');
       await liste();
     } catch (e) {

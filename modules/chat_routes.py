@@ -4,7 +4,7 @@ import uuid
 from pathlib import Path
 from flask import Blueprint, jsonify, request, send_from_directory
 from modules import chat_db
-from modules.chat_intent import detecter_image, detecter_pdf, extraire_partie, journaliser_rate, sujet_dans
+from modules.chat_intent import detecter_image, detecter_pdf, extraire_partie, journaliser_rate, sujet_dans, veut_images
 
 bp = Blueprint("chat", __name__, url_prefix="/api/chat")
 
@@ -79,7 +79,9 @@ CHAT_PROMPT = (
     "Pas de salutation, pas de préambule, pas d'analyse affichée : commence directement par la réponse. "
     "Phrases courtes, un exemple concret si ça aide. Conserve accents et symboles (→ ≥ ₂ α). "
     "N'invente aucune URL ni aucun chiffre ; si tu ne sais pas, dis « je ne sais pas ». "
-    "Appuie-toi sur la conversation précédente."
+    "Appuie-toi sur la conversation précédente. "
+    "L'étudiant est au Mali : « palu » signifie paludisme. "
+    "Si un terme est ambigu ou inconnu, dis-le et propose les sens courants, sans en inventer un."
 )
 HIST_MAX_MSG = 12
 HIST_MAX_CAR = 12000
@@ -191,9 +193,14 @@ def envoyer(cid):
     if texte_pdf:
         texte += f"\n\nDocument joint « {nom_pdf} » (extrait) :\n{texte_pdf}"
     sources, web_statut = [], None
+    veut_img = not (data or texte_pdf) and veut_images(msg)
+    sujet_w = _sujet_web(conv['messages'], msg) if (web or veut_img) else None
+    if veut_img:
+        texte += ("\n\n(Des images libres de Wikimedia Commons seront affichées sous ta réponse : "
+                  "n'en parle pas et ne dis pas que tu ne peux pas en montrer.)")
     if web:
         from modules.web_context import enrichir
-        texte, sources, web_statut = enrichir(_sujet_web(conv['messages'], msg), texte, medical=True)
+        texte, sources, web_statut = enrichir(sujet_w, texte, medical=True)
     img_path = None
     if data:
         UPLOAD_DIR.mkdir(parents=True, exist_ok=True)
@@ -221,13 +228,21 @@ def envoyer(cid):
         if img_path:
             img_path.unlink(missing_ok=True)
         return jsonify({"error": "Discussion supprimée pendant la réponse"}), 404
-    mid = chat_db.ajouter_message(cid, "ai", rep, sources_json=(json.dumps(sources, ensure_ascii=False) if sources else None))
+    imgs = []
+    if veut_img and sujet_w:
+        try:
+            from modules.commons import chercher_images
+            imgs = chercher_images(sujet_w)
+        except Exception as e:
+            print(f"chat images: {e}")
+    mid = chat_db.ajouter_message(cid, "ai", rep, sources_json=(json.dumps(sources, ensure_ascii=False) if sources else None),
+                                  images_json=(json.dumps(imgs, ensure_ascii=False) if imgs else None))
     titre = conv["titre"]
     if not conv["messages"] and titre == "Nouvelle discussion":
         titre = _titre_conv(msg)
         chat_db.renommer(cid, titre)
     return jsonify({"reponse": rep, "message_id": mid, "titre": titre, "sources": sources,
-                    "web_statut": web_statut, "image_path": rel, "pdf_path": None})
+                    "web_statut": web_statut, "image_path": rel, "pdf_path": None, "images": imgs})
 
 
 _NOM_PDF = re.compile(r"[0-9a-f]{32}\.pdf")
@@ -321,7 +336,7 @@ def _repondre_pdf(cid, conv, msg, d):
 
 PROMPT_SUJET = ("Extrais le sujet de recherche web de la dernière question de l'étudiant, "
                 "en 5 mots maximum, en français, sans ponctuation ni guillemets. "
-                "Réponds uniquement par ces mots.")
+                "« palu » signifie paludisme. Réponds uniquement par ces mots.")
 
 
 def _sujet_web(messages: list[dict], msg: str) -> str:
