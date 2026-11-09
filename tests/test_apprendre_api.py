@@ -23,7 +23,7 @@ def test_apprendre_cartes(env):
     r = c.get("/apprendre")
     html = r.get_data(as_text=True)
     assert r.status_code == 200
-    assert html.count("data-mode=") == 5
+    assert html.count("data-mode=") == 6
     assert 'data-mode="4"' in html
     for retire in (1, 5, 6, 7, 8):
         assert f'data-mode="{retire}"' not in html

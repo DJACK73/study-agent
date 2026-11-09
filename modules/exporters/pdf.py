@@ -229,7 +229,53 @@ def pdf_minimaliste(contenu: str, titre: str) -> bytes:
 
 
 # ── Dispatch par modèle ───────────────────────────────────
+def pdf_fiche(contenu: str, titre: str) -> bytes:
+    """Fiche 1 page : reduit la police jusqu'a un plancher, sinon ValueError."""
+    from reportlab.lib import colors
+    from reportlab.lib.units import cm as _c
+    from reportlab.platypus import SimpleDocTemplate, Paragraph, HRFlowable
+    from reportlab.lib.styles import ParagraphStyle
+    from reportlab.lib.enums import TA_CENTER
+    from reportlab.lib.pagesizes import A4
+    from pypdf import PdfReader
+    import io
+
+    accent = colors.HexColor("#1F7A6A")
+    texte  = colors.HexColor("#1E1B16")
+    for t in (10.5, 10, 9.5, 9, 8.5, 8):
+        ld  = t * 1.3
+        buf = io.BytesIO()
+        doc = SimpleDocTemplate(buf, pagesize=A4,
+                                leftMargin=1.6*_c, rightMargin=1.6*_c,
+                                topMargin=1.4*_c, bottomMargin=1.4*_c)
+        story = [
+            Paragraph(_safe(titre), ParagraphStyle(
+                'Tf', fontName='Helvetica-Bold', fontSize=t+7,
+                textColor=accent, alignment=TA_CENTER, spaceAfter=4)),
+            HRFlowable(width="100%", thickness=1.2, color=accent, spaceAfter=6),
+        ]
+        sm = {
+            'h1':     ParagraphStyle('f1', fontName='Helvetica-Bold', fontSize=t+3, leading=ld+3,
+                                      textColor=accent, spaceBefore=6, spaceAfter=3),
+            'h2':     ParagraphStyle('f2', fontName='Helvetica-Bold', fontSize=t+1, leading=ld+1,
+                                      textColor=accent, spaceBefore=6, spaceAfter=2),
+            'h3':     ParagraphStyle('f3', fontName='Helvetica-BoldOblique', fontSize=t, leading=ld,
+                                      textColor=accent, spaceBefore=4, spaceAfter=2),
+            'corps':  ParagraphStyle('fc', fontName='Helvetica', fontSize=t, leading=ld,
+                                      spaceAfter=3, textColor=texte),
+            'bullet': ParagraphStyle('fb', fontName='Helvetica', fontSize=t, leading=ld,
+                                      leftIndent=12, spaceAfter=1, textColor=texte),
+        }
+        _parse_lignes(contenu, sm, story)
+        doc.build(story)
+        data = buf.getvalue()
+        if len(PdfReader(io.BytesIO(data)).pages) == 1:
+            return data
+    raise ValueError("Fiche trop longue pour une page, regenere-la")
+
+
 _PDF_MODELES = {
+    "fiche":        pdf_fiche,
     "academique":   pdf_academique,
     "moderne":      pdf_moderne,
     "medical":      pdf_medical,

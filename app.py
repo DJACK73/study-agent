@@ -76,7 +76,7 @@ import tempfile
 import logging
 from contextlib import contextmanager
 
-MODES_API = {3, 4, 9}
+MODES_API = {3, 4, 9, 12}
 
 
 def _erreur(e):

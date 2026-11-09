@@ -45,6 +45,10 @@ Réponds en JSON uniquement, rien d'autre :
 Total : 30 points
 Présente d'abord les questions SANS les réponses.
 Termine par : '--- CORRIGÉ ---' avec toutes les réponses."""),
+
+    12: _prompt("""Fais une fiche de révision d'une seule page sur ce contenu, pour la veille d'examen.
+Format markdown strict : un titre '# ', puis 5 à 8 blocs '## ' (définition, mécanisme, signes, diagnostic, traitement... selon le sujet), avec 2 à 4 puces '- ' courtes par bloc.
+350 mots maximum au total. Pas de gras, pas de tableau, pas de phrase d'introduction."""),
 }
 
 def generer(contenu: str, mode: int, est_image: bool = False,

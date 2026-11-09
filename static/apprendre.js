@@ -117,6 +117,7 @@ async function lancer() {
 
       if (currentMode === 3) renderFlashcards(data.resultat);
       else if (currentMode === 4) renderQcm(data.resultat);
+      else if (currentMode === 12) { window._ficheTxt = data.resultat; showTextResult(data.resultat, '📄', 'Fiche'); }
       else showTextResult(data.resultat,
         '🎓',
         'Examen');
@@ -644,9 +645,10 @@ async function choisirModele(modele) {
 
 // ── Export PDF texte (tous modes sauf flashcards) ─────────
 function exportPDF() {
-  const texte = document.getElementById('result-content').textContent;
+  const fiche = document.getElementById('result-icon').textContent === '📄';
+  const texte = fiche ? (window._ficheTxt || '') : document.getElementById('result-content').textContent;
   const titre = document.getElementById('result-title').textContent;
-  ouvrirSelecteurPDF(async (modele) => {
+  (fiche ? (cb) => cb('fiche') : ouvrirSelecteurPDF)(async (modele) => {
     showLoading('Génération du PDF...');
     try {
       const res = await fetch('/api/export/pdf', {
@@ -654,6 +656,10 @@ function exportPDF() {
         headers: {'Content-Type': 'application/json'},
         body: JSON.stringify({ texte, titre, modele })
       });
+      if (!res.ok) {
+        const er = await res.json().catch(() => ({}));
+        hideLoading(); showToast(er.error || 'Erreur PDF', 'error'); return;
+      }
       const blob = await res.blob();
       const url  = URL.createObjectURL(blob);
       const a    = document.createElement('a');
