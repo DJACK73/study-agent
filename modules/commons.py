@@ -10,7 +10,7 @@ _TIMEOUT = 10
 _LICENCE_OK = re.compile(r"^(cc0|public domain|pd\b|cc[ -]by(?:[ -]sa)?\b)", re.I)
 _LICENCE_NON = re.compile(r"\b(nc|nd)\b", re.I)
 _TAGS = re.compile(r"<[^>]+>")
-_HOTE_IMG = re.compile(r"^https://upload\.wikimedia\.org/")
+_HOTE_IMG = re.compile(r"^https://(?:upload|thumb)\.wikimedia\.org/")
 _HOTE_PAGE = re.compile(r"^https://commons\.wikimedia\.org/")
 
 

@@ -102,3 +102,8 @@ def test_route_images_commons_injoignable(monkeypatch):
     monkeypatch.setattr("modules.commons.chercher_images", _ko)
     r = c.post("/api/chat/conversations/1/messages", json={"message": "Montre-moi une image de la mitochondrie"})
     assert r.status_code == 502 and saved == []
+
+
+def test_hote_thumb_accepte(monkeypatch):
+    _simule(monkeypatch, {"1": _page(1, "CC0", url="https://thumb.wikimedia.org/wikipedia/commons/thumb/0/0/a.png/480px-a.png")})
+    assert len(commons.chercher_images("x")) == 1
