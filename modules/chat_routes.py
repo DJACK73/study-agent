@@ -4,7 +4,7 @@ import uuid
 from pathlib import Path
 from flask import Blueprint, jsonify, request, send_from_directory
 from modules import chat_db
-from modules.chat_intent import detecter_pdf, extraire_partie, journaliser_rate, sujet_dans
+from modules.chat_intent import detecter_image, detecter_pdf, extraire_partie, journaliser_rate, sujet_dans
 
 bp = Blueprint("chat", __name__, url_prefix="/api/chat")
 
@@ -183,6 +183,10 @@ def envoyer(cid):
     journaliser_rate(msg, demande)
     if demande:
         return _repondre_pdf(cid, conv, msg, demande)
+    if not (data or texte_pdf):
+        sujet_img = detecter_image(msg)
+        if sujet_img:
+            return _repondre_images(cid, conv, msg, sujet_img)
     texte = f"{_historique(conv['messages'])}\n\nÉtudiant : {msg}".strip()
     if texte_pdf:
         texte += f"\n\nDocument joint « {nom_pdf} » (extrait) :\n{texte_pdf}"
@@ -333,3 +337,24 @@ def _sujet_web(messages: list[dict], msg: str) -> str:
     if not s or len(s) > 80 or len(s.split()) > 8:
         return _requete_web(messages, msg)
     return s
+
+
+def _repondre_images(cid, conv, msg, sujet):
+    """Demande d'image : Commons cote serveur, aucun appel Gemini, aucune URL inventee."""
+    from modules.commons import chercher_images
+    try:
+        imgs = chercher_images(sujet)
+    except Exception as e:
+        print(f"chat images: {e}")
+        return jsonify({"error": "Wikimedia Commons injoignable, reessaie"}), 502
+    rep = (f"Images libres de droits pour « {sujet} » (Wikimedia Commons)." if imgs
+           else f"Aucune image libre trouvee pour « {sujet} ».")
+    chat_db.ajouter_message(cid, "user", msg)
+    mid = chat_db.ajouter_message(cid, "ai", rep,
+                                  images_json=(json.dumps(imgs, ensure_ascii=False) if imgs else None))
+    titre = conv["titre"]
+    if not conv["messages"] and titre == "Nouvelle discussion":
+        titre = _titre_conv(msg)
+        chat_db.renommer(cid, titre)
+    return jsonify({"reponse": rep, "message_id": mid, "titre": titre, "sources": [],
+                    "web_statut": None, "image_path": None, "pdf_path": None, "images": imgs})

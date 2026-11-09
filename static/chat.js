@@ -62,7 +62,9 @@
     return out.join('');
   }
 
-  function bulle(role, texte, pdf, err, img) {
+  function parseImgs(s) { try { return s ? JSON.parse(s) : null; } catch (e) { return null; } }
+
+  function bulle(role, texte, pdf, err, img, imgs) {
     const m = $('msgs');
     const e = m.querySelector('.chat-empty'); if (e) e.remove();
     const d = document.createElement('div');
@@ -80,6 +82,24 @@
       a.href = API + '/pdf/' + encodeURIComponent(pdf.split('/').pop());
       a.target = '_blank'; a.textContent = '📄 Ouvrir le PDF';
       d.appendChild(a);
+    }
+    if (imgs && imgs.length) {
+      const g = document.createElement('div');
+      g.style.cssText = 'display:flex;flex-wrap:wrap;gap:12px;margin-top:10px';
+      imgs.forEach((x) => {
+        const f = document.createElement('figure');
+        f.style.cssText = 'margin:0;max-width:240px';
+        const im = document.createElement('img');
+        im.src = x.url; im.alt = x.titre || ''; im.loading = 'lazy';
+        im.style.cssText = 'display:block;width:100%;border-radius:8px';
+        const cap = document.createElement('figcaption');
+        cap.style.cssText = 'font-size:12px;color:var(--text3);margin-top:4px';
+        const a = document.createElement('a');
+        a.href = x.page; a.target = '_blank'; a.rel = 'noopener noreferrer'; a.textContent = x.titre || 'Source';
+        cap.append(a, document.createTextNode(' \u00b7 ' + x.auteur + ' \u00b7 ' + x.licence));
+        f.append(im, cap); g.appendChild(f);
+      });
+      d.appendChild(g);
     }
     m.appendChild(d); m.scrollTop = m.scrollHeight;
     return d;
@@ -116,7 +136,7 @@
       const d = await j(API + '/conversations/' + id);
       cid = id; $('msgs').innerHTML = '';
       (d.messages || []).forEach((m) => bulle(m.role, m.contenu, m.pdf_path, false,
-        m.image_path ? API + '/img/' + encodeURIComponent(m.image_path.split('/').pop()) : null));
+        m.image_path ? API + '/img/' + encodeURIComponent(m.image_path.split('/').pop()) : null, parseImgs(m.images_json)));
       if (!(d.messages || []).length) $('msgs').innerHTML = '<div class="chat-empty">Discussion vide.</div>';
       fichier = null; $('file').value = ''; chip();
       actif(true); await liste();
@@ -177,7 +197,7 @@
         opt = {method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify({message: txt, web: $('chk-web').checked}), signal: ctrl.signal};
       }
       const d = await j(API + '/conversations/' + cid + '/messages', opt);
-      att.remove(); bulle('ai', d.reponse, d.pdf_path);
+      att.remove(); bulle('ai', d.reponse, d.pdf_path, false, null, d.images);
       if (d.web_statut && d.web_statut !== 'ok') showToast('Web : ' + d.web_statut, 'info');
       await liste();
     } catch (e) {

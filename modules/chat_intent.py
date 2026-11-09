@@ -85,3 +85,29 @@ def journaliser_rate(message: str, resultat: dict | None) -> None:
         with open(_LOG, "a", encoding="utf-8") as f:
             f.write(json.dumps({"t": time.strftime("%Y-%m-%d %H:%M"), "m": message[:200]},
                                ensure_ascii=False) + "\n")
+
+
+_DEMANDE_IMG = re.compile(r"\b(?:montre|montrer|affiche|afficher|cherche|chercher|trouve|trouver|donne|donner|veux|voir|vois|illustre|illustrer|ajoute|ajouter)\b")
+_IMG = re.compile(r"\b(?:images?|photos?|illustrations?)\s+(?:(?:des|de|du|sur)\s+|d')(.{3,80})")
+_ARTICLE = re.compile(r"^(?:(?:la|le|les|un|une|ma|mon|des|du|de)\s+|l'|l\u2019)", re.I)
+_GEN_IMG = _GENERIQUE | {"ce", "cette", "cet", "ces", "pdf"}
+
+
+def detecter_image(message: str) -> str | None:
+    """Sujet d'une demande d'image (« montre-moi une image de X »), sinon None."""
+    m = _n(message)
+    if not _DEMANDE_IMG.search(m):
+        return None
+    s = _IMG.search(m)
+    if not s:
+        return None
+    debut, fin = s.start(1), s.end(1)
+    coupe = _FIN.search(m, debut, fin)
+    if coupe:
+        fin = coupe.start()
+    base = message if len(m) == len(message) else m
+    sujet = _ARTICLE.sub("", base[debut:fin].strip(" -'\u2019")).strip()
+    mots = _n(sujet).split()
+    if len(sujet) < 3 or not mots or mots[0] in _GEN_IMG:
+        return None
+    return sujet[:80]
