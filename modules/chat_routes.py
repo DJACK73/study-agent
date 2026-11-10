@@ -85,11 +85,11 @@ CHAT_PROMPT = (
     "Utilise toujours les termes complets du domaine, jamais les abréviations familières.\n"
     "Si un mot est une faute de frappe, un terme familier ou ambigu, ouvre par une phrase courte qui dit comment tu le comprends ; "
     "si le mot est déjà correct, n'ajoute aucune phrase d'interprétation. Si deux sens sont possibles, cite-les et demande lequel. N'invente jamais un sens.\n"
-    "IMAGES : décide toi-même si une image aide à comprendre (anatomie, schéma d'un mécanisme, cellule, coupe histologique, courbe, structure). "
-    "Si oui, écris sur une ligne seule, juste après le paragraphe concerné : [[img: requête en anglais]] (2 à 5 mots, nom précis du sujet). "
-    "Pour l'anatomie ou un mécanisme, termine la requête par « labeled diagram » afin d'obtenir un schéma avec les noms des parties. "
-    "Maximum 3 images, aucune si l'image n'apporte rien (définition, concept abstrait, question courte). "
-    "Si l'étudiant demande des images ou des schémas, mets-en plusieurs (jusqu'à 5) aux bons endroits. "
+    "IMAGES : tu peux illustrer ta réponse avec des images libres de droits, seulement quand une image t'aide vraiment à expliquer "
+    "(anatomie, schéma d'un mécanisme, cellule, coupe, courbe), pas pour une définition ni une question courte. "
+    "Pour en placer une, écris sur une ligne seule, juste après le paragraphe qu'elle illustre : [[img: requête en anglais]] "
+    "(2 à 5 mots, nom précis du sujet, suivi de « labeled diagram » quand les noms des parties comptent). "
+    "L'image est ensuite choisie parmi plusieurs candidats. Si l'étudiant demande des images, mets-en autant qu'il en faut. "
     "Ne mentionne jamais ces marqueurs et ne dis jamais que tu ne peux pas montrer d'images."
 )
 HIST_MAX_MSG = 12
@@ -243,16 +243,10 @@ def envoyer(cid):
             img_path.unlink(missing_ok=True)
         return jsonify({"error": "Discussion supprimée pendant la réponse"}), 404
     rep, marq = _extraire_marqueurs(rep)
-    imgs = _images_marqueurs(marq[:5 if veut_img else 3])
-    if veut_img and not imgs:
-        try:
-            from modules.commons import chercher_images
-            sujet_i = _sujet_image(conv['messages'], msg)
-            imgs = chercher_images(sujet_i)
-            if not imgs:
-                print(f"chat images: aucune pour {sujet_i!r}")
-        except Exception as e:
-            print(f"chat images: {e}")
+    slots = [{"q": q, "apres": a} for q, a in marq[:5 if veut_img else 3]]
+    if veut_img and not slots:
+        slots = [{"q": _sujet_image(conv['messages'], msg), "apres": None}]
+    imgs = []
     mid = chat_db.ajouter_message(cid, "ai", rep, sources_json=(json.dumps(sources, ensure_ascii=False) if sources else None),
                                   images_json=(json.dumps(imgs, ensure_ascii=False) if imgs else None))
     titre = conv["titre"]
@@ -260,7 +254,7 @@ def envoyer(cid):
         titre = _titre_conv(msg)
         chat_db.renommer(cid, titre)
     return jsonify({"reponse": rep, "message_id": mid, "titre": titre, "sources": sources,
-                    "web_statut": web_statut, "image_path": rel, "pdf_path": None, "images": imgs})
+                    "web_statut": web_statut, "image_path": rel, "pdf_path": None, "images": imgs, "slots": slots})
 
 
 _NOM_PDF = re.compile(r"[0-9a-f]{32}\.pdf")
@@ -380,24 +374,130 @@ def _extraire_marqueurs(rep):
     return "\n\n".join(blocs), marq
 
 
-def _images_marqueurs(marq):
-    """Une image Commons par marqueur, posee apres le bloc `apres`. Une erreur n'arrete rien."""
+_PROMPT_VISION = (
+    "Tu choisis les images qui illustreront une réponse de cours. Pour chaque EMPLACEMENT, des images candidates numérotées te sont montrées. "
+    "Garde celle qui illustre le mieux ce que la réponse explique à cet endroit. "
+    "Pour l'anatomie ou un mécanisme, préfère une image dont les noms des parties sont lisibles, en français si possible, sinon en anglais ; "
+    "écarte les noms dans une autre langue, les images floues ou sans rapport. Si aucune ne convient, réponds null pour cet emplacement. "
+    "Réponds uniquement par un tableau JSON, un élément par emplacement : [{\"i\": numéro de l'emplacement, \"choix\": numéro de l'image ou null}]."
+)
+_FORMATS_VISION = {"image/png", "image/jpeg", "image/webp"}
+
+
+def _telecharger(url):
+    import requests
+    try:
+        r = requests.get(url, headers={"User-Agent": "StudyAgent/1.0 (outil d'etude local)"}, timeout=15)
+        r.raise_for_status()
+    except Exception as e:
+        print(f"chat vision telechargement: {e}")
+        return None
+    mime = r.headers.get("content-type", "").split(";")[0].strip().lower()
+    if mime not in _FORMATS_VISION or len(r.content) > 2_000_000:
+        return None
+    return r.content, mime
+
+
+def _vision_choix(cands, contenu):
+    """Un seul appel de vision pour tous les emplacements. -> [index du candidat ou None] par emplacement, None si impossible."""
+    from concurrent.futures import ThreadPoolExecutor
+    from google.genai import types
+    from modules.gemini_handler import MODELE_BASE, analyser_contenus
+    taches = [(s, k, c["url"]) for s, (_, _, cs) in enumerate(cands) for k, c in enumerate(cs)]
+    with ThreadPoolExecutor(max_workers=6) as ex:
+        res = list(ex.map(lambda t: _telecharger(t[2]), taches))
+    vus = {}
+    for (s, k, _), r in zip(taches, res):
+        if r:
+            vus.setdefault(s, []).append((k, r[0], r[1]))
+    if not vus:
+        return None
+    contenus = [f"Réponse du tuteur (contexte) :\n{contenu[:1500]}"]
+    for s, (_, q, _cs) in enumerate(cands):
+        contenus.append(f"EMPLACEMENT {s + 1} — sujet : {q}")
+        for n, (_k, data, mime) in enumerate(vus.get(s, []), 1):
+            contenus.append(f"Image {s + 1}.{n} :")
+            contenus.append(types.Part.from_bytes(data=data, mime_type=mime))
+    contenus.append(_PROMPT_VISION)
+    cfg = types.GenerateContentConfig(response_mime_type="application/json",
+                                      thinking_config=types.ThinkingConfig(thinking_level="low"))
+    tok = MODELE_BASE.set(_MODELE_CHAT)
+    try:
+        rep = analyser_contenus(contenus, cfg)
+    finally:
+        MODELE_BASE.reset(tok)
+    m = _re.search(r"\[.*\]", rep or "", _re.S)
+    arr = json.loads(m.group(0)) if m else []
+    choix = []
+    for s in range(len(cands)):
+        liste = vus.get(s, [])
+        if not liste:
+            choix.append(0)
+            continue
+        item = next((x for x in arr if isinstance(x, dict) and x.get("i") == s + 1), None)
+        if item is None:
+            choix.append(liste[0][0])
+            continue
+        n = item.get("choix")
+        if n is None:
+            choix.append(None)
+        elif isinstance(n, int) and 1 <= n <= len(liste):
+            choix.append(liste[n - 1][0])
+        else:
+            choix.append(liste[0][0])
+    return choix
+
+
+def _choisir_images(slots, contenu):
+    """Candidats Commons par emplacement, puis le modele regarde et choisit (ou rejette). Repli : 1er candidat."""
     from modules.commons import chercher_images
-    out, vus = [], set()
-    for q, apres in marq:
+    n = 3 if len(slots) <= 3 else 2
+    cands, vus = [], set()
+    for q, apres in slots:
         if q.lower() in vus:
             continue
         vus.add(q.lower())
         try:
-            r = chercher_images(q, n=3)
+            c = chercher_images(q, n=n)
         except Exception as e:
             print(f"chat images: {e}")
             continue
-        if not r:
+        if c:
+            cands.append((apres, q, c))
+        else:
             print(f"chat images: aucune pour {q!r}")
+    if not cands:
+        return []
+    try:
+        choix = _vision_choix(cands, contenu)
+    except Exception as e:
+        print(f"chat vision: {e}")
+        choix = None
+    out = []
+    for i, (apres, q, c) in enumerate(cands):
+        k = 0 if choix is None else choix[i]
+        if k is None:
+            print(f"chat vision: aucune image retenue pour {q!r}")
             continue
-        out.append({**r[0], "apres": apres})
+        out.append({**c[k], "apres": apres})
     return out
+
+
+@bp.route("/messages/<int:mid>/images", methods=["POST"])
+def resoudre_images(mid):
+    m = chat_db.lire_message(mid)
+    if not m or m["role"] != "ai":
+        return jsonify({"error": "Message introuvable"}), 404
+    slots = []
+    for s in ((request.get_json(silent=True) or {}).get("slots") or [])[:5]:
+        q = str((s or {}).get("q", "")).strip()[:80]
+        a = (s or {}).get("apres")
+        if len(q) >= 2:
+            slots.append((q, a if isinstance(a, int) and not isinstance(a, bool) and 0 <= a < 200 else None))
+    imgs = _choisir_images(slots, m["contenu"])
+    if imgs:
+        chat_db.maj_images(mid, json.dumps(imgs, ensure_ascii=False))
+    return jsonify({"images": imgs})
 
 
 PROMPT_SUJET_IMG = (

@@ -75,3 +75,16 @@ def supprimer(conv_id: int | None = None) -> int:
         if conv_id is None:
             return conn.execute("DELETE FROM conversations").rowcount
         return conn.execute("DELETE FROM conversations WHERE id=?", (conv_id,)).rowcount
+
+
+def lire_message(mid: int) -> dict | None:
+    with get_conn() as conn:
+        r = conn.execute("SELECT id, role, contenu FROM messages WHERE id=?", (mid,)).fetchone()
+        return dict(r) if r else None
+
+
+def maj_images(mid: int, images_json: str) -> bool:
+    """Ajoute les images a un message de l'IA une fois la recherche terminee."""
+    with get_conn() as conn:
+        return conn.execute("UPDATE messages SET images_json=? WHERE id=? AND role='ai'",
+                            (images_json, mid)).rowcount > 0

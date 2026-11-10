@@ -135,6 +135,38 @@ def test_route_reponse_gemini_plus_images(monkeypatch):
                                       json={"message": "c'est quoi le paludisme et montres des image"})
     assert r.status_code == 200
     d = r.get_json()
-    assert d["images"] == [IMG] and d["reponse"] == "paludisme"
+    assert d["images"] == [] and d["reponse"] == "paludisme"
+    assert d["slots"] == [{"q": "paludisme", "apres": None}]
     assert "image" in appels[-1].lower()
-    assert saved[1][1]["images_json"]
+    assert not saved[1][1].get("images_json")
+
+
+def _route_images(monkeypatch, imgs, vision):
+    import app as appmod
+    maj = []
+    monkeypatch.setattr("modules.chat_db.lire_message", lambda mid: {"id": mid, "role": "ai", "contenu": "texte"})
+    monkeypatch.setattr("modules.chat_db.maj_images", lambda mid, j: maj.append((mid, j)) or True)
+    monkeypatch.setattr("modules.commons.chercher_images", lambda s, n=3: imgs)
+    monkeypatch.setattr("modules.chat_routes._vision_choix", vision)
+    r = appmod.app.test_client().post("/api/chat/messages/7/images",
+                                      json={"slots": [{"q": "liver anatomy", "apres": 1}]})
+    return r, maj
+
+
+def test_images_a_la_demande_choix_par_vision(monkeypatch):
+    autre = {**IMG, "titre": "autre"}
+    r, maj = _route_images(monkeypatch, [IMG, autre], lambda cands, contenu: [1])
+    assert r.status_code == 200 and r.get_json()["images"] == [{**autre, "apres": 1}]
+    assert maj and maj[0][0] == 7
+
+
+def test_images_a_la_demande_vision_rejette(monkeypatch):
+    r, maj = _route_images(monkeypatch, [IMG], lambda cands, contenu: [None])
+    assert r.get_json()["images"] == [] and maj == []
+
+
+def test_images_a_la_demande_repli_si_vision_echoue(monkeypatch):
+    def ko(cands, contenu):
+        raise TimeoutError("lent")
+    r, maj = _route_images(monkeypatch, [IMG], ko)
+    assert r.get_json()["images"] == [{**IMG, "apres": 1}]

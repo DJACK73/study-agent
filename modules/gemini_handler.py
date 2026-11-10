@@ -47,7 +47,7 @@ import contextvars as _cv
 MODELE_BASE = _cv.ContextVar("modele_base", default=None)
 
 
-def _appeler(contents) -> str:
+def _appeler(contents, config=None) -> str:
     """Retry sur 429/503, alterne les clés, dernier essai sur MODEL_SMART."""
     n = len(_DELAIS) + 1
     derniere = None
@@ -57,7 +57,8 @@ def _appeler(contents) -> str:
         client = _CLIENTS[i % len(_CLIENTS)]
         modele = (MODELE_BASE.get() or MODEL_NAME) if i < n - 1 else MODEL_SMART
         try:
-            return client.models.generate_content(model=modele, contents=contents).text
+            kw = {"config": config} if config is not None else {}
+            return client.models.generate_content(model=modele, contents=contents, **kw).text
         except Exception as e:
             if isinstance(e, _TIMEOUTS) or "Timeout" in type(e).__name__:
                 raise TimeoutError("Gemini ne repond pas (delai depasse)") from e
@@ -78,6 +79,11 @@ def _appeler(contents) -> str:
 
 def analyser_texte(texte: str, prompt: str) -> str:
     return _appeler(f"{prompt}\n\n---\n{texte}")
+
+
+def analyser_contenus(contenus: list, config=None) -> str:
+    """Texte et images melanges dans un seul appel (retry et cles identiques a analyser_texte)."""
+    return _appeler(contenus, config)
 
 
 def analyser_image(chemin_image: str, prompt: str) -> str:

@@ -151,6 +151,23 @@
     return d;
   }
 
+  async function chargerImages(el, d) {
+    const att = document.createElement('div');
+    att.style.cssText = 'margin-top:8px;font-size:12px;color:var(--text3)';
+    att.textContent = 'Recherche des images…';
+    el.appendChild(att);
+    try {
+      const r = await j(API + '/messages/' + d.message_id + '/images',
+        {method: 'POST', headers: {'Content-Type': 'application/json'}, body: JSON.stringify({slots: d.slots})});
+      if (!el.isConnected) return;
+      if (r.images && r.images.length) {
+        const m = $('msgs'), st = m.scrollTop;
+        const neu = bulle('ai', d.reponse, d.pdf_path, false, null, r.images, d.sources);
+        el.replaceWith(neu); m.scrollTop = st;
+      } else att.remove();
+    } catch (e) { att.remove(); }
+  }
+
   async function liste() {
     const items = await j(API + '/conversations');
     const box = $('conv-items'); box.innerHTML = '';
@@ -243,7 +260,9 @@
         opt = {method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify({message: txt, web: $('chk-web').checked}), signal: ctrl.signal};
       }
       const d = await j(API + '/conversations/' + cid + '/messages', opt);
-      att.remove(); bulle('ai', d.reponse, d.pdf_path, false, null, d.images, d.sources);
+      att.remove();
+      const neu = bulle('ai', d.reponse, d.pdf_path, false, null, d.images, d.sources);
+      if (d.slots && d.slots.length) chargerImages(neu, d);
       if (d.web_statut && d.web_statut !== 'ok') showToast('Web : ' + d.web_statut, 'info');
       await liste();
     } catch (e) {
