@@ -194,7 +194,7 @@ def envoyer(cid):
         texte += f"\n\nDocument joint « {nom_pdf} » (extrait) :\n{texte_pdf}"
     sources, web_statut = [], None
     veut_img = not (data or texte_pdf) and veut_images(msg)
-    sujet_w = _sujet_web(conv['messages'], msg) if (web or veut_img) else None
+    sujet_w = _sujet_web(conv['messages'], msg) if web else None
     if veut_img:
         texte += ("\n\n(Des images libres de Wikimedia Commons seront affichées sous ta réponse : "
                   "n'en parle pas et ne dis pas que tu ne peux pas en montrer.)")
@@ -229,10 +229,13 @@ def envoyer(cid):
             img_path.unlink(missing_ok=True)
         return jsonify({"error": "Discussion supprimée pendant la réponse"}), 404
     imgs = []
-    if veut_img and sujet_w:
+    if veut_img:
         try:
             from modules.commons import chercher_images
-            imgs = chercher_images(sujet_w)
+            sujet_i = _sujet_image(conv['messages'], msg)
+            imgs = chercher_images(sujet_i)
+            if not imgs:
+                print(f"chat images: aucune pour {sujet_i!r}")
         except Exception as e:
             print(f"chat images: {e}")
     mid = chat_db.ajouter_message(cid, "ai", rep, sources_json=(json.dumps(sources, ensure_ascii=False) if sources else None),
@@ -337,6 +340,32 @@ def _repondre_pdf(cid, conv, msg, d):
 PROMPT_SUJET = ("Extrais le sujet de recherche web de la dernière question de l'étudiant, "
                 "en 5 mots maximum, en français, sans ponctuation ni guillemets. "
                 "Corrige les fautes de frappe évidentes et remplace « palu » par paludisme. Réponds uniquement par ces mots.")
+
+
+PROMPT_SUJET_IMG = (
+    "Donne uniquement le nom du sujet à illustrer par une image, en français, 1 à 3 mots. "
+    "Sans les mots image, photo, schéma, illustration, traitement, définition, explication. "
+    "Corrige les fautes de frappe (palu, palus, palusdime = paludisme). "
+    "Utilise le terme médical complet. Réponds par le sujet seul, sans ponctuation ni phrase."
+)
+
+
+def _sujet_image(messages: list[dict], msg: str) -> str:
+    """Sujet court pour Commons (distinct de _sujet_web). Repli : message nettoyé, ne bloque jamais."""
+    import re
+    from modules.gemini_handler import analyser_texte
+    prec = next((m["contenu"] for m in reversed(messages) if m["role"] == "user"), "")
+    entree = (f"Question précédente : {prec[:200]}\n" if prec else "") + f"Dernière question : {msg[:300]}"
+    try:
+        s = " ".join((analyser_texte(entree, PROMPT_SUJET_IMG) or "").split()).strip(" \"'.")
+    except Exception as e:
+        print(f"sujet image: {e}")
+        s = ""
+    if s and len(s) <= 40 and len(s.split()) <= 4:
+        return s
+    brut = re.sub(r"(?i)\b(c'est quoi|qu'est-ce que|explique|expliquer|montre|montres|montrer|affiche|ajoute|"
+                  r"avec|et|des|de|du|la|le|les|un|une|moi|images?|photos?|illustrations?|sch[ée]mas?)\b", " ", msg)
+    return " ".join(brut.replace("?", " ").split())[:60] or msg[:60]
 
 
 def _sujet_web(messages: list[dict], msg: str) -> str:
