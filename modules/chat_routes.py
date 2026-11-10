@@ -85,12 +85,14 @@ CHAT_PROMPT = (
     "Utilise toujours les termes complets du domaine, jamais les abréviations familières.\n"
     "Si un mot est une faute de frappe, un terme familier ou ambigu, ouvre par une phrase courte qui dit comment tu le comprends ; "
     "si le mot est déjà correct, n'ajoute aucune phrase d'interprétation. Si deux sens sont possibles, cite-les et demande lequel. N'invente jamais un sens.\n"
-    "IMAGES : tu peux illustrer ta réponse avec des images libres de droits, seulement quand une image t'aide vraiment à expliquer "
-    "(anatomie, schéma d'un mécanisme, cellule, coupe, courbe), pas pour une définition ni une question courte. "
-    "Pour en placer une, écris sur une ligne seule, juste après le paragraphe qu'elle illustre : [[img: requête en anglais]] "
-    "(2 à 5 mots, nom précis du sujet, suivi de « labeled diagram » quand les noms des parties comptent). "
-    "L'image est ensuite choisie parmi plusieurs candidats. Si l'étudiant demande des images, mets-en autant qu'il en faut. "
-    "Ne mentionne jamais ces marqueurs et ne dis jamais que tu ne peux pas montrer d'images."
+    "IMAGES : tu peux illustrer ta réponse avec des images libres de droits quand elles aident vraiment à comprendre "
+    "(anatomie, schéma d'un mécanisme, cellule, coupe histologique, courbe). Une définition, une notion abstraite ou une question ponctuelle n'en demandent pas, ou une seule. "
+    "Un sujet complet (un système, un organe, un mécanisme, une maladie) se présente comme une leçon de manuel : au moins trois images, "
+    "de trois à cinq, une vue d'ensemble puis une image pour chaque grande partie que tu détailles (l'organe lui-même, sa structure fine ou sa coupe, le mécanisme). "
+    "Place chaque image juste après le paragraphe qu'elle illustre, jamais en bloc à la fin, avec un marqueur sur une ligne seule : [[img: requête en anglais]] "
+    "(2 à 5 mots, nom précis de ce qui est montré, suivi de « labeled diagram » quand les noms des parties comptent). "
+    "Chaque image doit montrer précisément ce que le paragraphe vient d'expliquer : une requête différente par partie, jamais la même vue d'ensemble répétée. "
+    "Chaque image est ensuite choisie parmi plusieurs candidats. Ne mentionne jamais ces marqueurs et ne dis jamais que tu ne peux pas montrer d'images."
 )
 HIST_MAX_MSG = 12
 HIST_MAX_CAR = 12000
@@ -243,7 +245,8 @@ def envoyer(cid):
             img_path.unlink(missing_ok=True)
         return jsonify({"error": "Discussion supprimée pendant la réponse"}), 404
     rep, marq = _extraire_marqueurs(rep)
-    slots = [{"q": q, "apres": a} for q, a in marq[:5 if veut_img else 3]]
+    slots = [{"q": q, "apres": a} for q, a in marq[:5]]
+    print(f"chat images: {len(marq)} marqueur(s) ecrit(s) par le modele")
     if veut_img and not slots:
         slots = [{"q": _sujet_image(conv['messages'], msg), "apres": None}]
     imgs = []
@@ -455,7 +458,8 @@ def _vision_choix(cands, contenu):
 
 
 def _choisir_images(slots, contenu):
-    """Candidats Commons par emplacement, puis le modele regarde et choisit (ou rejette). Repli : 1er candidat."""
+    """Candidats Commons par emplacement, puis le modele regarde et choisit (ou rejette). Repli : 1er candidat.
+    Une meme image n'est jamais posee deux fois."""
     from modules.commons import chercher_images
     n = 3 if len(slots) <= 3 else 2
     cands, vus = [], set()
@@ -465,6 +469,13 @@ def _choisir_images(slots, contenu):
         vus.add(q.lower())
         try:
             c = chercher_images(q, n=n)
+            if _re.search(r"diagram|labell?ed", q, _re.I):
+                try:
+                    fr = [x for x in chercher_images(q + " fr", n=6) if _re.search(r"[ _-]fr\.\w+$", x["page"], _re.I)]
+                except Exception:
+                    fr = []
+                if fr:
+                    c = (fr[:1] + [x for x in c if x["page"] != fr[0]["page"]])[:n]
         except Exception as e:
             print(f"chat images: {e}")
             continue
@@ -479,13 +490,20 @@ def _choisir_images(slots, contenu):
     except Exception as e:
         print(f"chat vision: {e}")
         choix = None
-    out = []
+    out, pris = [], set()
     for i, (apres, q, c) in enumerate(cands):
         k = 0 if choix is None else choix[i]
         if k is None:
             print(f"chat vision: aucune image retenue pour {q!r}")
             continue
-        out.append({**c[k], "apres": apres})
+        x = c[k]
+        if x["page"] in pris:
+            x = next((y for y in c if y["page"] not in pris), None) if choix is None else None
+        if x is None:
+            continue
+        pris.add(x["page"])
+        out.append({**x, "apres": apres})
+    print(f"chat images: {len(out)} retenue(s) sur {len(cands)} emplacement(s)")
     return out
 
 

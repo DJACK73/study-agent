@@ -64,19 +64,32 @@
 
   function parseImgs(s) { try { return s ? JSON.parse(s) : null; } catch (e) { return null; } }
 
+  function agrandir(x) {
+    const o = document.createElement('div');
+    o.style.cssText = 'position:fixed;inset:0;z-index:1000;background:rgba(0,0,0,.85);display:flex;align-items:center;justify-content:center;padding:16px;cursor:zoom-out';
+    const im = document.createElement('img');
+    im.src = x.url; im.alt = x.titre || '';
+    im.style.cssText = 'max-width:96vw;max-height:94vh;background:#fff;border-radius:8px';
+    const cle = (e) => { if (e.key === 'Escape') fermer(); };
+    const fermer = () => { o.remove(); document.removeEventListener('keydown', cle); };
+    o.onclick = fermer; document.addEventListener('keydown', cle);
+    o.appendChild(im); document.body.appendChild(o);
+  }
+
   function figIm(x) {
     const f = document.createElement('figure');
     f.style.cssText = 'margin:12px 0;max-width:520px';
-    const a0 = document.createElement('a');
-    a0.href = x.page; a0.target = '_blank'; a0.rel = 'noopener noreferrer';
     const im = document.createElement('img');
     im.src = x.url; im.alt = x.titre || ''; im.loading = 'lazy';
-    im.style.cssText = 'display:block;width:100%;border-radius:8px;background:#fff';
-    a0.appendChild(im);
+    im.style.cssText = 'display:block;width:100%;border-radius:8px;background:#fff;cursor:zoom-in';
+    im.onclick = () => agrandir(x);
     const cap = document.createElement('figcaption');
     cap.style.cssText = 'font-size:12px;color:var(--text3);margin-top:4px';
-    cap.textContent = (x.titre || 'Source') + ' \u00b7 ' + (x.auteur || '') + ' \u00b7 ' + (x.licence || '');
-    f.append(a0, cap);
+    const a = document.createElement('a');
+    a.href = x.page; a.target = '_blank'; a.rel = 'noopener noreferrer'; a.textContent = x.titre || 'Source';
+    a.style.color = 'var(--accent2)';
+    cap.append(a, document.createTextNode(' \u00b7 ' + (x.auteur || '') + ' \u00b7 ' + (x.licence || '')));
+    f.append(im, cap);
     return f;
   }
 
@@ -156,16 +169,20 @@
     att.style.cssText = 'margin-top:8px;font-size:12px;color:var(--text3)';
     att.textContent = 'Recherche des images…';
     el.appendChild(att);
+    const c = new AbortController();
+    const t = setTimeout(() => c.abort(), 90000);
     try {
       const r = await j(API + '/messages/' + d.message_id + '/images',
-        {method: 'POST', headers: {'Content-Type': 'application/json'}, body: JSON.stringify({slots: d.slots})});
+        {method: 'POST', headers: {'Content-Type': 'application/json'}, body: JSON.stringify({slots: d.slots}), signal: c.signal});
       if (!el.isConnected) return;
       if (r.images && r.images.length) {
         const m = $('msgs'), st = m.scrollTop;
         const neu = bulle('ai', d.reponse, d.pdf_path, false, null, r.images, d.sources);
         el.replaceWith(neu); m.scrollTop = st;
       } else att.remove();
-    } catch (e) { att.remove(); }
+    } catch (e) {
+      if (el.isConnected) att.textContent = 'Images indisponibles';
+    } finally { clearTimeout(t); }
   }
 
   async function liste() {

@@ -170,3 +170,11 @@ def test_images_a_la_demande_repli_si_vision_echoue(monkeypatch):
         raise TimeoutError("lent")
     r, maj = _route_images(monkeypatch, [IMG], ko)
     assert r.get_json()["images"] == [{**IMG, "apres": 1}]
+
+
+def test_meme_image_jamais_deux_fois(monkeypatch):
+    from modules import chat_routes
+    monkeypatch.setattr("modules.commons.chercher_images", lambda s, n=3: [IMG])
+    monkeypatch.setattr("modules.chat_routes._vision_choix", lambda cands, contenu: [0, 0])
+    out = chat_routes._choisir_images([("liver anatomy", 0), ("stomach anatomy", 1)], "texte")
+    assert len(out) == 1
