@@ -385,13 +385,19 @@ _FORMATS_VISION = {"image/png", "image/jpeg", "image/webp"}
 
 
 def _telecharger(url):
+    import time
     import requests
-    try:
-        r = requests.get(url, headers={"User-Agent": "StudyAgent/1.0 (outil d'etude local)"}, timeout=15)
-        r.raise_for_status()
-    except Exception as e:
-        print(f"chat vision telechargement: {e}")
-        return None
+    for essai in range(2):
+        try:
+            r = requests.get(url, headers={"User-Agent": "StudyAgent/1.0 (outil d'etude local)"}, timeout=15)
+            if r.status_code == 429 and essai == 0:
+                time.sleep(2)
+                continue
+            r.raise_for_status()
+            break
+        except Exception as e:
+            print(f"chat vision telechargement: {e}")
+            return None
     mime = r.headers.get("content-type", "").split(";")[0].strip().lower()
     if mime not in _FORMATS_VISION or len(r.content) > 2_000_000:
         return None
@@ -404,7 +410,7 @@ def _vision_choix(cands, contenu):
     from google.genai import types
     from modules.gemini_handler import MODELE_BASE, analyser_contenus
     taches = [(s, k, c["url"]) for s, (_, _, cs) in enumerate(cands) for k, c in enumerate(cs)]
-    with ThreadPoolExecutor(max_workers=6) as ex:
+    with ThreadPoolExecutor(max_workers=3) as ex:
         res = list(ex.map(lambda t: _telecharger(t[2]), taches))
     vus = {}
     for (s, k, _), r in zip(taches, res):
