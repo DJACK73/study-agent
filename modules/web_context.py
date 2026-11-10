@@ -10,6 +10,8 @@ def enrichir(requete: str, contexte: str, medical: bool = False):
         return contexte, [], "plafond"
     try:
         sources = chercher(requete[:200], n=4, domaines=DOMAINES_MED if medical else None)
+        if not sources and medical:
+            sources = chercher(requete[:200], n=4, domaines=None)
     except Exception as e:
         print(f"web_search: {e}")
         return contexte, [], "indisponible"

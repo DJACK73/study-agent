@@ -64,13 +64,45 @@
 
   function parseImgs(s) { try { return s ? JSON.parse(s) : null; } catch (e) { return null; } }
 
+  function figIm(x) {
+    const f = document.createElement('figure');
+    f.style.cssText = 'margin:12px 0;max-width:520px';
+    const a0 = document.createElement('a');
+    a0.href = x.page; a0.target = '_blank'; a0.rel = 'noopener noreferrer';
+    const im = document.createElement('img');
+    im.src = x.url; im.alt = x.titre || ''; im.loading = 'lazy';
+    im.style.cssText = 'display:block;width:100%;border-radius:8px;background:#fff';
+    a0.appendChild(im);
+    const cap = document.createElement('figcaption');
+    cap.style.cssText = 'font-size:12px;color:var(--text3);margin-top:4px';
+    cap.textContent = (x.titre || 'Source') + ' \u00b7 ' + (x.auteur || '') + ' \u00b7 ' + (x.licence || '');
+    f.append(a0, cap);
+    return f;
+  }
+
   function bulle(role, texte, pdf, err, img, imgs, srcs) {
     const m = $('msgs');
     const e = m.querySelector('.chat-empty'); if (e) e.remove();
     const d = document.createElement('div');
     d.className = 'msg ' + role + (err ? ' err' : '') + (role === 'ai' && !err ? ' md-output' : '');
     if (role === 'ai' && !err) d.dataset.raw = texte;
-    if (role === 'user' || err) d.textContent = texte; else d.innerHTML = md(texte);
+    const place = (imgs || []).filter((x) => typeof x.apres === 'number');
+    const bas = (imgs || []).filter((x) => typeof x.apres !== 'number');
+    if (role === 'user' || err) d.textContent = texte;
+    else if (place.length) {
+      const blocs = String(texte).split(/\n\s*\n/);
+      let k = 0;
+      const rendre = (fin) => {
+        if (fin < k) return;
+        const w = document.createElement('div');
+        w.innerHTML = md(blocs.slice(k, fin + 1).join('\n\n'));
+        d.appendChild(w); k = fin + 1;
+      };
+      place.slice().sort((a, b) => a.apres - b.apres).forEach((x) => {
+        rendre(Math.min(x.apres, blocs.length - 1)); d.appendChild(figIm(x));
+      });
+      rendre(blocs.length - 1);
+    } else d.innerHTML = md(texte);
     if (img) {
       const im = document.createElement('img'); im.src = img; im.alt = '';
       im.style.cssText = 'display:block;max-width:240px;max-height:240px;border-radius:8px;margin-bottom:8px';
@@ -83,15 +115,15 @@
       a.target = '_blank'; a.textContent = '📄 Ouvrir le PDF';
       d.appendChild(a);
     }
-    if (imgs && imgs.length) {
+    if (bas.length) {
       const g = document.createElement('div');
       g.style.cssText = 'display:flex;flex-wrap:wrap;gap:12px;margin-top:10px';
-      imgs.forEach((x) => {
+      bas.forEach((x) => {
         const f = document.createElement('figure');
         f.style.cssText = 'margin:0;max-width:240px';
         const im = document.createElement('img');
         im.src = x.url; im.alt = x.titre || ''; im.loading = 'lazy';
-        im.style.cssText = 'display:block;width:100%;border-radius:8px';
+        im.style.cssText = 'display:block;width:100%;border-radius:8px;background:#fff';
         const cap = document.createElement('figcaption');
         cap.style.cssText = 'font-size:12px;color:var(--text3);margin-top:4px';
         const a = document.createElement('a');

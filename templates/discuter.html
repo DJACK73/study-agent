@@ -35,6 +35,12 @@
 .plus-menu[hidden]{display:none;}
 .plus-menu button{background:none;border:none;color:var(--text2);text-align:left;padding:9px 12px;border-radius:8px;cursor:pointer;font-size:13px;}
 .plus-menu button:hover{background:var(--bg3);color:var(--text);}
+@media(min-width:861px){
+.main .page-content{padding:12px 24px;}
+.chat-wrap{height:calc(100vh - 92px);min-height:360px;}
+.chat-input{padding:10px 14px;}
+.web-opt{padding:0 14px 8px;}
+}
 @media(max-width:860px){
 .chat-wrap{grid-template-columns:1fr;grid-template-rows:auto minmax(0,1fr);gap:10px;height:calc(100vh - 144px);height:calc(100dvh - 144px);min-height:320px;}
 .chat-wrap.collapsed{grid-template-columns:1fr;grid-template-rows:minmax(0,1fr);gap:0;}

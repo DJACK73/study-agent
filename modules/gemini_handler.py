@@ -42,6 +42,11 @@ if "pytest" not in sys.modules:  # journal fichier hors tests : data/gemini.log 
         _racine.addHandler(_hs)
 
 
+import contextvars as _cv
+
+MODELE_BASE = _cv.ContextVar("modele_base", default=None)
+
+
 def _appeler(contents) -> str:
     """Retry sur 429/503, alterne les clés, dernier essai sur MODEL_SMART."""
     n = len(_DELAIS) + 1
@@ -50,7 +55,7 @@ def _appeler(contents) -> str:
         if i:
             time.sleep(_DELAIS[i - 1])
         client = _CLIENTS[i % len(_CLIENTS)]
-        modele = MODEL_NAME if i < n - 1 else MODEL_SMART
+        modele = (MODELE_BASE.get() or MODEL_NAME) if i < n - 1 else MODEL_SMART
         try:
             return client.models.generate_content(model=modele, contents=contents).text
         except Exception as e:

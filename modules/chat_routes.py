@@ -75,13 +75,22 @@ def _purger(chemins: list[str]) -> None:
 
 
 CHAT_PROMPT = (
-    "Tu es le tuteur d'un étudiant en médecine. Tu réponds en français, comme un bon prof qui explique simplement.\n"
-    "Pas de salutation, pas de préambule, pas d'analyse affichée : commence directement par la réponse. "
-    "Phrases courtes, un exemple concret si ça aide. Conserve accents et symboles (→ ≥ ₂ α). "
-    "N'invente aucune URL ni aucun chiffre ; si tu ne sais pas, dis « je ne sais pas ». "
-    "Appuie-toi sur la conversation précédente. "
-    "« palu » est le mot familier pour paludisme : utilise toujours les termes médicaux complets, jamais « palu ». "
-    "Si le mot de l'étudiant est une faute de frappe, un terme familier ou ambigu, commence par une phrase courte qui dit comment tu le comprends (exemple : « Je pars sur le paludisme »), puis réponds ; si deux sens sont possibles, cite-les et demande lequel. N'invente jamais un sens (seule exception à la règle « pas de préambule »)."
+    "Tu es le tuteur d'un étudiant en santé qui se sert de cette application pour étudier toutes sortes de matières. "
+    "Déduis la matière de la question et réponds en français, comme un bon prof qui explique simplement.\n"
+    "Comprends d'abord ce que l'étudiant cherche vraiment (définition, mécanisme, comparaison, application), puis adapte la profondeur : "
+    "question précise = réponse courte et exacte ; notion, maladie ou mécanisme = réponse structurée qui explique le pourquoi, pas seulement une liste de faits. "
+    "Pour une maladie : définition, cause, physiopathologie, signes, diagnostic, traitement, prévention, en phrases courtes.\n"
+    "Pas de salutation, pas d'analyse affichée : commence par la réponse. Un exemple concret quand il aide. Conserve accents et symboles (→ ≥ ₂ α). "
+    "N'invente aucune URL ni aucun chiffre ; si tu ne sais pas, dis « je ne sais pas ». Appuie-toi sur la conversation précédente. "
+    "Utilise toujours les termes complets du domaine, jamais les abréviations familières.\n"
+    "Si un mot est une faute de frappe, un terme familier ou ambigu, ouvre par une phrase courte qui dit comment tu le comprends ; "
+    "si le mot est déjà correct, n'ajoute aucune phrase d'interprétation. Si deux sens sont possibles, cite-les et demande lequel. N'invente jamais un sens.\n"
+    "IMAGES : décide toi-même si une image aide à comprendre (anatomie, schéma d'un mécanisme, cellule, coupe histologique, courbe, structure). "
+    "Si oui, écris sur une ligne seule, juste après le paragraphe concerné : [[img: requête en anglais]] (2 à 5 mots, nom précis du sujet). "
+    "Pour l'anatomie ou un mécanisme, termine la requête par « labeled diagram » afin d'obtenir un schéma avec les noms des parties. "
+    "Maximum 3 images, aucune si l'image n'apporte rien (définition, concept abstrait, question courte). "
+    "Si l'étudiant demande des images ou des schémas, mets-en plusieurs (jusqu'à 5) aux bons endroits. "
+    "Ne mentionne jamais ces marqueurs et ne dis jamais que tu ne peux pas montrer d'images."
 )
 HIST_MAX_MSG = 12
 HIST_MAX_CAR = 12000
@@ -196,8 +205,8 @@ def envoyer(cid):
     veut_img = not (data or texte_pdf) and veut_images(msg)
     sujet_w = _sujet_web(conv['messages'], msg) if web else None
     if veut_img:
-        texte += ("\n\n(Des images libres de Wikimedia Commons seront affichées sous ta réponse : "
-                  "n'en parle pas et ne dis pas que tu ne peux pas en montrer.)")
+        texte += ("\n\n(L'étudiant demande des images : place plusieurs marqueurs [[img: ...]] aux endroits où elles aident, "
+                  "jusqu'à 5, avec « labeled diagram » pour l'anatomie.)")
     if web:
         from modules.web_context import enrichir
         texte, sources, web_statut = enrichir(sujet_w, texte, medical=True)
@@ -210,7 +219,12 @@ def envoyer(cid):
         if img_path:
             rep = analyser_image(str(img_path), f"{CHAT_PROMPT}\n\n{texte}")
         else:
-            rep = analyser_texte(texte, CHAT_PROMPT)
+            from modules.gemini_handler import MODELE_BASE
+            _tok = MODELE_BASE.set(_MODELE_CHAT)
+            try:
+                rep = analyser_texte(texte, CHAT_PROMPT)
+            finally:
+                MODELE_BASE.reset(_tok)
     except Exception as e:
         print(f"chat gemini: {e}")
         if img_path:
@@ -228,8 +242,9 @@ def envoyer(cid):
         if img_path:
             img_path.unlink(missing_ok=True)
         return jsonify({"error": "Discussion supprimée pendant la réponse"}), 404
-    imgs = []
-    if veut_img:
+    rep, marq = _extraire_marqueurs(rep)
+    imgs = _images_marqueurs(marq[:5 if veut_img else 3])
+    if veut_img and not imgs:
         try:
             from modules.commons import chercher_images
             sujet_i = _sujet_image(conv['messages'], msg)
@@ -342,11 +357,54 @@ PROMPT_SUJET = ("Extrais le sujet de recherche web de la dernière question de l
                 "Corrige les fautes de frappe évidentes et remplace « palu » par paludisme. Réponds uniquement par ces mots.")
 
 
+import os as _os
+import re as _re
+from config import MODEL_SMART as _MS
+
+_MODELE_CHAT = _os.environ.get("GEMINI_MODEL_CHAT") or _MS
+_RE_MARQ = _re.compile(r"\[\[\s*img:\s*([^\]\n]{2,80}?)\s*\]\]", _re.I)
+
+
+def _extraire_marqueurs(rep):
+    """Texte sans marqueurs [[img: ...]] + [(requete, indice du bloc precedent)]. Blocs = separes par une ligne vide."""
+    if not rep or not _RE_MARQ.search(rep):
+        return rep, []
+    blocs, marq = [], []
+    for b in _re.split(r"\n\s*\n", rep.strip()):
+        requetes = _RE_MARQ.findall(b)
+        propre = _RE_MARQ.sub("", b).strip()
+        if propre:
+            blocs.append(propre)
+        for q in requetes:
+            marq.append((q.strip(), max(len(blocs) - 1, 0)))
+    return "\n\n".join(blocs), marq
+
+
+def _images_marqueurs(marq):
+    """Une image Commons par marqueur, posee apres le bloc `apres`. Une erreur n'arrete rien."""
+    from modules.commons import chercher_images
+    out, vus = [], set()
+    for q, apres in marq:
+        if q.lower() in vus:
+            continue
+        vus.add(q.lower())
+        try:
+            r = chercher_images(q, n=3)
+        except Exception as e:
+            print(f"chat images: {e}")
+            continue
+        if not r:
+            print(f"chat images: aucune pour {q!r}")
+            continue
+        out.append({**r[0], "apres": apres})
+    return out
+
+
 PROMPT_SUJET_IMG = (
     "Donne uniquement le nom du sujet à illustrer par une image, en français, 1 à 3 mots. "
     "Sans les mots image, photo, schéma, illustration, traitement, définition, explication. "
     "Corrige les fautes de frappe (palu, palus, palusdime = paludisme). "
-    "Utilise le terme médical complet. Réponds par le sujet seul, sans ponctuation ni phrase."
+    "Utilise le terme complet du domaine. Réponds par le sujet seul, sans ponctuation ni phrase."
 )
 
 

@@ -18,12 +18,15 @@ def _texte(s) -> str:
     return html.unescape(_TAGS.sub("", s or "")).strip()[:120]
 
 
-def chercher_images(sujet: str, n: int = 3) -> list[dict]:
-    """Jusqu'a n images avec licence libre lisible. Leve une exception si le reseau echoue."""
+_LANG = re.compile(r" (fr|en)\.\w+$", re.I)
+_SCHEMA = re.compile(r"diagram|labell?ed|scheme|chart", re.I)
+
+
+def _recherche(sujet: str, ft: str) -> list[dict]:
     r = requests.get(_API, headers={"User-Agent": _UA}, timeout=_TIMEOUT, params={
         "action": "query", "format": "json", "generator": "search",
-        "gsrsearch": f"{sujet[:80]} filetype:bitmap", "gsrnamespace": 6, "gsrlimit": 12,
-        "prop": "imageinfo", "iiprop": "url|mime|extmetadata", "iiurlwidth": 480,
+        "gsrsearch": f"{sujet[:80]} filetype:{ft}", "gsrnamespace": 6, "gsrlimit": 12,
+        "prop": "imageinfo", "iiprop": "url|mime|extmetadata", "iiurlwidth": 800,
         "iiextmetadatafilter": "LicenseShortName|Artist|ObjectName"})
     r.raise_for_status()
     pages = (r.json().get("query") or {}).get("pages") or {}
@@ -39,10 +42,34 @@ def chercher_images(sujet: str, n: int = 3) -> list[dict]:
             continue
         if not str(info.get("mime", "")).startswith("image/"):
             continue
-        titre = _texte((meta.get("ObjectName") or {}).get("value")) or _texte(str(p.get("title", "")).replace("File:", ""))
+        nom = str(p.get("title", ""))
+        m = _LANG.search(nom)
+        titre = _texte((meta.get("ObjectName") or {}).get("value")) or _texte(nom.replace("File:", ""))
         out.append({"url": url, "page": page, "titre": titre,
                     "auteur": _texte((meta.get("Artist") or {}).get("value")) or "Auteur inconnu",
-                    "licence": lic})
+                    "licence": lic, "_k": 0 if (m and m.group(1).lower() == "fr") else 1 if m else 2})
+    return out
+
+
+def chercher_images(sujet: str, n: int = 3) -> list[dict]:
+    """Jusqu'a n images libres. Schemas (SVG) d'abord si la requete parle de diagramme.
+    Leve une exception seulement si toutes les recherches echouent."""
+    ordre = ("drawing", "bitmap") if _SCHEMA.search(sujet) else ("bitmap", "drawing")
+    out, vus, derniere, echecs = [], set(), None, 0
+    for ft in ordre:
+        try:
+            items = _recherche(sujet, ft)
+        except Exception as e:
+            derniere, echecs = e, echecs + 1
+            continue
+        deja = set(vus)
+        for it in items:
+            vus.add(it["page"])
+            if it["page"] not in deja:
+                out.append(it)
         if len(out) >= n:
             break
-    return out
+    if not out and echecs == len(ordre):
+        raise derniere
+    out.sort(key=lambda it: it["_k"])
+    return [{k: v for k, v in it.items() if k != "_k"} for it in out[:n]]
