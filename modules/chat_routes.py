@@ -80,8 +80,8 @@ CHAT_PROMPT = (
     "Phrases courtes, un exemple concret si ça aide. Conserve accents et symboles (→ ≥ ₂ α). "
     "N'invente aucune URL ni aucun chiffre ; si tu ne sais pas, dis « je ne sais pas ». "
     "Appuie-toi sur la conversation précédente. "
-    "L'étudiant est au Mali : « palu » signifie paludisme. "
-    "Si un terme est ambigu ou inconnu, dis-le et propose les sens courants, sans en inventer un."
+    "« palu » est le mot familier pour paludisme : utilise toujours les termes médicaux complets, jamais « palu ». "
+    "Si le mot de l'étudiant est une faute de frappe, un terme familier ou ambigu, commence par une phrase courte qui dit comment tu le comprends (exemple : « Je pars sur le paludisme »), puis réponds ; si deux sens sont possibles, cite-les et demande lequel. N'invente jamais un sens (seule exception à la règle « pas de préambule »)."
 )
 HIST_MAX_MSG = 12
 HIST_MAX_CAR = 12000
@@ -336,7 +336,7 @@ def _repondre_pdf(cid, conv, msg, d):
 
 PROMPT_SUJET = ("Extrais le sujet de recherche web de la dernière question de l'étudiant, "
                 "en 5 mots maximum, en français, sans ponctuation ni guillemets. "
-                "« palu » signifie paludisme. Réponds uniquement par ces mots.")
+                "Corrige les fautes de frappe évidentes et remplace « palu » par paludisme. Réponds uniquement par ces mots.")
 
 
 def _sujet_web(messages: list[dict], msg: str) -> str:
