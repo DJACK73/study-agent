@@ -178,3 +178,30 @@ def test_meme_image_jamais_deux_fois(monkeypatch):
     monkeypatch.setattr("modules.chat_routes._vision_choix", lambda cands, contenu: [0, 0])
     out = chat_routes._choisir_images([("liver anatomy", 0), ("stomach anatomy", 1)], "texte")
     assert len(out) == 1
+
+
+def test_une_seule_requete_ou_et_cache(monkeypatch):
+    appels = []
+
+    def fake(*a, **k):
+        appels.append(k["params"]["gsrsearch"])
+        return _Rep({"query": {"pages": {"1": _page(1, "CC0")}}})
+    monkeypatch.setattr(commons.requests, "get", fake)
+    commons.chercher_images("coeur")
+    commons.chercher_images("coeur")
+    assert len(appels) == 1 and "bitmap|drawing" in appels[0]
+
+
+class _R429(_Rep):
+    status_code = 429
+    headers = {"Retry-After": "0"}
+
+    def raise_for_status(self):
+        raise requests.HTTPError("429")
+
+
+def test_reprise_sur_429(monkeypatch):
+    seq = [_R429({}), _Rep({"query": {"pages": {"1": _page(1, "CC0")}}})]
+    monkeypatch.setattr(commons.requests, "get", lambda *a, **k: seq.pop(0))
+    monkeypatch.setattr(commons.time, "sleep", lambda s: None)
+    assert len(commons.chercher_images("foie")) == 1

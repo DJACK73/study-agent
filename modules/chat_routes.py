@@ -387,12 +387,17 @@ _PROMPT_VISION = (
 _FORMATS_VISION = {"image/png", "image/jpeg", "image/webp"}
 
 
+def _ua_commons():
+    from modules.commons import _UA
+    return _UA
+
+
 def _telecharger(url):
     import time
     import requests
     for essai in range(2):
         try:
-            r = requests.get(url, headers={"User-Agent": "StudyAgent/1.0 (outil d'etude local)"}, timeout=15)
+            r = requests.get(url, headers={"User-Agent": _ua_commons()}, timeout=15)
             if r.status_code == 429 and essai == 0:
                 time.sleep(2)
                 continue
@@ -480,6 +485,7 @@ def _choisir_images(slots, contenu):
             print(f"chat images: {e}")
             continue
         if c:
+            print(f"chat images: {q!r} -> {len(c)} candidat(s): " + ", ".join(x["page"].rsplit("/", 1)[-1][:40] for x in c))
             cands.append((apres, q, c))
         else:
             print(f"chat images: aucune pour {q!r}")
