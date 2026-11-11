@@ -205,3 +205,17 @@ def test_reprise_sur_429(monkeypatch):
     monkeypatch.setattr(commons.requests, "get", lambda *a, **k: seq.pop(0))
     monkeypatch.setattr(commons.time, "sleep", lambda s: None)
     assert len(commons.chercher_images("foie")) == 1
+
+
+def test_requete_trop_precise_reduite(monkeypatch):
+    appels = []
+
+    def fake(*a, **k):
+        appels.append(k["params"]["gsrsearch"])
+        if len(appels) == 1:
+            return _Rep({"batchcomplete": ""})
+        return _Rep({"query": {"pages": {"1": _page(1, "CC0")}}})
+    monkeypatch.setattr(commons.requests, "get", fake)
+    res = commons.chercher_images("esophagus and swallowing mechanism diagram")
+    assert len(res) == 1 and len(appels) == 2
+    assert "mechanism" not in appels[1] and "diagram" in appels[1]

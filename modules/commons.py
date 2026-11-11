@@ -86,6 +86,25 @@ def _recherche(sujet: str) -> list[dict]:
     return out
 
 
+_STOP = {"and", "of", "the", "in", "with", "a", "an"}
+_QUEUE = {"diagram", "labeled", "labelled", "scheme", "chart"}
+
+
+def _variantes(sujet: str) -> list[str]:
+    """Requete complete sans mots vides, puis jusqu'a 1 reduction du sujet (la queue 'diagram/labeled' est gardee)."""
+    mots = [w for w in sujet.split() if w.lower() not in _STOP]
+    queue = []
+    while len(mots) > 1 and mots[-1].lower() in _QUEUE:
+        queue.insert(0, mots.pop())
+    out = [" ".join(mots + queue)]
+    for _ in range(2):
+        if len(mots) <= 2:
+            break
+        mots = mots[:-1]
+        out.append(" ".join(mots + queue))
+    return out
+
+
 def chercher_images(sujet: str, n: int = 3) -> list[dict]:
     """Jusqu'a n images libres (une requete API, cache 1 h). Fichiers _fr d'abord.
     Leve une exception si la requete echoue."""
@@ -94,7 +113,11 @@ def chercher_images(sujet: str, n: int = 3) -> list[dict]:
     if ent and time.monotonic() - ent[0] < _TTL:
         items = ent[1]
     else:
-        items = _recherche(sujet)
+        items = []
+        for v in ([sujet] if sujet.endswith(" fr") else _variantes(sujet)):
+            items = _recherche(v)
+            if items:
+                break
         if len(_CACHE) >= _CACHE_MAX:
             _CACHE.pop(next(iter(_CACHE)))
         _CACHE[cle] = (time.monotonic(), items)

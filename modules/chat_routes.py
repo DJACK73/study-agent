@@ -467,7 +467,9 @@ def _choisir_images(slots, contenu):
     """Candidats Commons par emplacement, puis le modele regarde et choisit (ou rejette). Repli : 1er candidat.
     Une meme image n'est jamais posee deux fois."""
     from modules.commons import chercher_images
-    n = 3 if len(slots) <= 3 else 2
+    import time as _t
+    t0 = _t.monotonic()
+    n = 4 if len(slots) <= 3 else 3
     cands, vus = [], set()
     for q, apres in slots:
         if q.lower() in vus:
@@ -510,7 +512,7 @@ def _choisir_images(slots, contenu):
             continue
         pris.add(x["page"])
         out.append({**x, "apres": apres})
-    print(f"chat images: {len(out)} retenue(s) sur {len(cands)} emplacement(s)")
+    print(f"chat images: {len(out)} retenue(s) sur {len(cands)} emplacement(s) en {_t.monotonic() - t0:.0f} s")
     return out
 
 
