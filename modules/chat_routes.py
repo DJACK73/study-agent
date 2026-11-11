@@ -382,7 +382,7 @@ _PROMPT_VISION = (
     "Garde celle qui illustre le mieux ce que la réponse explique à cet endroit. "
     "Pour l'anatomie ou un mécanisme, préfère une image dont les noms des parties sont lisibles, en français si possible, sinon en anglais ; "
     "écarte les noms dans une autre langue, les images floues ou sans rapport. Si aucune ne convient, réponds null pour cet emplacement. "
-    "Réponds uniquement par un tableau JSON, un élément par emplacement : [{\"i\": numéro de l'emplacement, \"choix\": numéro de l'image ou null}]."
+    "Réponds uniquement par un tableau JSON, un élément par emplacement : [{\"i\": numéro de l'emplacement, \"choix\": numéro de l'image ou null, \"raison\": une phrase courte en français (langue des noms, lisibilité, pertinence)}]."
 )
 _FORMATS_VISION = {"image/png", "image/jpeg", "image/webp"}
 
@@ -453,6 +453,7 @@ def _vision_choix(cands, contenu):
             choix.append(liste[0][0])
             continue
         n = item.get("choix")
+        print(f"chat vision: emplacement {s + 1}: choix={n!r}, raison={str(item.get('raison', ''))[:160]!r}")
         if n is None:
             choix.append(None)
         elif isinstance(n, int) and 1 <= n <= len(liste):
