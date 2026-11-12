@@ -37,6 +37,12 @@ os.makedirs(OUTPUT_DIR, exist_ok=True)
 # ─────────────────────────────────────────────────────────────────────────────
 
 @app.route("/")
+def racine():
+    from flask import redirect as _redirect
+    return _redirect("/discuter")
+
+
+@app.route("/accueil")
 def index():
     stats  = get_stats()
     sujets = get_maitrise_par_sujet()

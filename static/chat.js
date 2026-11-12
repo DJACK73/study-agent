@@ -291,6 +291,7 @@
   }
 
   $('btn-new').onclick = nouvelle;
+  if ($('btn-new2')) $('btn-new2').onclick = nouvelle;
   $('btn-send').onclick = () => { if (busy) { if (ctrl) ctrl.abort(); } else envoyer(); };
   $('file').onchange = () => {
     const f = $('file').files[0];

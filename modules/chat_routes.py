@@ -382,6 +382,7 @@ _PROMPT_VISION = (
     "Garde celle qui illustre le mieux ce que la réponse explique à cet endroit. "
     "Pour l'anatomie ou un mécanisme, préfère une image dont les noms des parties sont lisibles, en français si possible, sinon en anglais ; "
     "écarte les noms dans une autre langue, les images floues ou sans rapport. Si aucune ne convient, réponds null pour cet emplacement. "
+    "Vérifie que l'image montre bien le SUJET de l'emplacement : une image d'un autre sujet (maladie, autre organe, autre animal) = null, même si c'est la seule. "
     "Réponds uniquement par un tableau JSON, un élément par emplacement : [{\"i\": numéro de l'emplacement, \"choix\": numéro de l'image ou null, \"raison\": une phrase courte en français (langue des noms, lisibilité, pertinence)}]."
 )
 _FORMATS_VISION = {"image/png", "image/jpeg", "image/webp"}
@@ -418,7 +419,7 @@ def _vision_choix(cands, contenu):
     from google.genai import types
     from modules.gemini_handler import MODELE_BASE, analyser_contenus
     taches = [(s, k, c["url"]) for s, (_, _, cs) in enumerate(cands) for k, c in enumerate(cs)]
-    with ThreadPoolExecutor(max_workers=3) as ex:
+    with ThreadPoolExecutor(max_workers=2) as ex:
         res = list(ex.map(lambda t: _telecharger(t[2]), taches))
     vus = {}
     for (s, k, _), r in zip(taches, res):
@@ -463,6 +464,21 @@ def _vision_choix(cands, contenu):
     return choix
 
 
+_GENERIQUES = {"diagram", "labeled", "labelled", "scheme", "chart", "anatomy", "structure", "human", "system",
+               "overview", "and", "of", "the", "in", "with", "fr", "illustration", "drawing"}
+
+
+def _pertinents(q, items):
+    """Garde les candidats dont le titre ou le nom de fichier contient un mot du sujet (hors mots generiques)."""
+    mots = [w for w in _re.findall(r"[a-z]{3,}", q.lower()) if w not in _GENERIQUES]
+    if not mots:
+        return items
+    out = [x for x in items if any(m[:5] in (x.get("titre", "") + " " + x.get("page", "")).lower() for m in mots)]
+    if len(out) < len(items):
+        print(f"chat images: {q!r}: {len(items) - len(out)} candidat(s) hors sujet ecarte(s)")
+    return out
+
+
 def _choisir_images(slots, contenu):
     """Candidats Commons par emplacement, puis le modele regarde et choisit (ou rejette). Repli : 1er candidat.
     Une meme image n'est jamais posee deux fois."""
@@ -476,7 +492,7 @@ def _choisir_images(slots, contenu):
             continue
         vus.add(q.lower())
         try:
-            c = chercher_images(q, n=n)
+            c = _pertinents(q, chercher_images(q, n=12))[:n]
             if _re.search(r"diagram|labell?ed", q, _re.I):
                 try:
                     fr = [x for x in chercher_images(q + " fr", n=6) if _re.search(r"[ _-]fr\.\w+$", x["page"], _re.I)]

@@ -147,6 +147,7 @@ def _route_images(monkeypatch, imgs, vision):
     monkeypatch.setattr("modules.chat_db.lire_message", lambda mid: {"id": mid, "role": "ai", "contenu": "texte"})
     monkeypatch.setattr("modules.chat_db.maj_images", lambda mid, j: maj.append((mid, j)) or True)
     monkeypatch.setattr("modules.commons.chercher_images", lambda s, n=3: imgs)
+    monkeypatch.setattr("modules.chat_routes._pertinents", lambda q, items: items)
     monkeypatch.setattr("modules.chat_routes._vision_choix", vision)
     r = appmod.app.test_client().post("/api/chat/messages/7/images",
                                       json={"slots": [{"q": "liver anatomy", "apres": 1}]})
@@ -175,6 +176,7 @@ def test_images_a_la_demande_repli_si_vision_echoue(monkeypatch):
 def test_meme_image_jamais_deux_fois(monkeypatch):
     from modules import chat_routes
     monkeypatch.setattr("modules.commons.chercher_images", lambda s, n=3: [IMG])
+    monkeypatch.setattr("modules.chat_routes._pertinents", lambda q, items: items)
     monkeypatch.setattr("modules.chat_routes._vision_choix", lambda cands, contenu: [0, 0])
     out = chat_routes._choisir_images([("liver anatomy", 0), ("stomach anatomy", 1)], "texte")
     assert len(out) == 1
@@ -219,3 +221,11 @@ def test_requete_trop_precise_reduite(monkeypatch):
     res = commons.chercher_images("esophagus and swallowing mechanism diagram")
     assert len(res) == 1 and len(appels) == 2
     assert "mechanism" not in appels[1] and "diagram" in appels[1]
+
+
+def test_filtre_pertinence_ecarte_hors_sujet():
+    from modules import chat_routes
+    grippe = {"titre": "Diagram of influenza infection symptoms", "page": "https://commons.wikimedia.org/wiki/File:Flu.svg"}
+    bon = {"titre": "Digestive system diagram", "page": "https://commons.wikimedia.org/wiki/File:Digestive_system_diagram_fr.svg"}
+    assert chat_routes._pertinents("digestive system human anatomy labeled diagram", [grippe, bon]) == [bon]
+    assert chat_routes._pertinents("diagram", [grippe, bon]) == [grippe, bon]
