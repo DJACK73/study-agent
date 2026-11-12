@@ -170,7 +170,7 @@
     att.textContent = 'Recherche des images…';
     el.appendChild(att);
     const c = new AbortController();
-    const t = setTimeout(() => c.abort(), 90000);
+    const t = setTimeout(() => c.abort(), 240000);
     try {
       const r = await j(API + '/messages/' + d.message_id + '/images',
         {method: 'POST', headers: {'Content-Type': 'application/json'}, body: JSON.stringify({slots: d.slots}), signal: c.signal});
