@@ -69,7 +69,13 @@ def _appeler(contents, config=None) -> str:
                     raise ConnectionError("Gemini injoignable (connexion impossible)") from e
                 derniere = e
                 continue
+            if getattr(e, "code", None) == 504:
+                logging.warning("gemini 504 delai serveur %d/%d modele=%s cle=%d",
+                                i + 1, n, modele, i % len(_CLIENTS) + 1)
+                raise TimeoutError("Gemini ne repond pas (delai depasse)") from e
             if getattr(e, "code", None) not in _RETRY:
+                logging.warning("gemini erreur non retryee type=%s code=%s modele=%s cle=%d",
+                                type(e).__name__, getattr(e, "code", None), modele, i % len(_CLIENTS) + 1)
                 raise
             derniere = e
             logging.warning("gemini retry %d/%d code=%s modele=%s cle=%d",
