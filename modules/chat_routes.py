@@ -509,10 +509,13 @@ def _vision_choix(cands, contenu):
         print(f"chat vision: emplacement {s + 1}: choix={n!r}, raison={str(item.get('raison', ''))[:160]!r}")
         if n is None:
             choix.append(None)
-        elif isinstance(n, int) and 1 <= n <= len(liste):
-            choix.append(liste[n - 1][0])
         else:
-            choix.append(liste[0][0])
+            mm = _re.fullmatch(r"\s*(?:(\d+)\.)?(\d+)\s*", str(n))
+            if mm and mm.group(1) in (None, str(s + 1)) and 1 <= int(mm.group(2)) <= len(liste):
+                choix.append(liste[int(mm.group(2)) - 1][0])
+            else:
+                print(f"chat vision: emplacement {s + 1}: choix illisible {n!r}, repli sur le 1er candidat")
+                choix.append(liste[0][0])
     return choix
 
 
@@ -620,6 +623,7 @@ def _choisir_images(slots, contenu):
         if x is None:
             continue
         pris.add(x["page"])
+        print(f"chat images: emplacement {i + 1}: retenue {x['page'].rsplit('/', 1)[-1][:60]} (candidat {k + 1})")
         out.append({**x, "apres": apres})
     print(f"chat images: {len(out)} retenue(s) sur {len(cands)} emplacement(s) en {_t.monotonic() - t0:.0f} s")
     return out
