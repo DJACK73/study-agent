@@ -492,7 +492,15 @@ def _choisir_images(slots, contenu):
             continue
         vus.add(q.lower())
         try:
-            c = _pertinents(q, chercher_images(q, n=12))[:n]
+            c = _pertinents(q, chercher_images(q, n=12))
+            if len(c) < 3:
+                try:
+                    from modules.commons import chercher_images_exa
+                    deja = {x["page"] for x in c}
+                    c += [x for x in _pertinents(q, chercher_images_exa(q)) if x["page"] not in deja]
+                except Exception as e:
+                    print(f"chat images: exa: {e}")
+            c = c[:n]
             if _re.search(r"diagram|labell?ed", q, _re.I):
                 try:
                     fr = [x for x in chercher_images(q + " fr", n=6) if _re.search(r"[ _-]fr\.\w+$", x["page"], _re.I)]

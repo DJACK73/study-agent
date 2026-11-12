@@ -10,5 +10,6 @@ def _log_intent_isole(tmp_path, monkeypatch):
 def _commons_isole(monkeypatch):
     from modules import commons
     commons._CACHE.clear()
+    monkeypatch.delenv("EXA_API_KEY", raising=False)
     monkeypatch.setattr(commons, "_INTERVALLE", 0)
     yield

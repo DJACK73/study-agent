@@ -3,6 +3,7 @@ import html
 import os
 import re
 import threading
+from urllib.parse import unquote
 import time
 
 import requests
@@ -60,7 +61,10 @@ def _recherche(sujet: str) -> list[dict]:
         "gsrsearch": f"filetype:bitmap|drawing {sujet[:80]}", "gsrnamespace": 6, "gsrlimit": 20,
         "prop": "imageinfo", "iiprop": "url|mime|extmetadata", "iiurlwidth": 800,
         "iiextmetadatafilter": "LicenseShortName|Artist|ObjectName"})
-    pages = (r.json().get("query") or {}).get("pages") or {}
+    return _parse(sujet, (r.json().get("query") or {}).get("pages") or {})
+
+
+def _parse(sujet, pages):
     out, rejet = [], {"licence": 0, "hote": 0, "mime": 0}
     for p in sorted(pages.values(), key=lambda p: p.get("index", 0)):
         info = (p.get("imageinfo") or [{}])[0]
@@ -118,6 +122,39 @@ def chercher_images(sujet: str, n: int = 3) -> list[dict]:
             items = _recherche(v)
             if items:
                 break
+        if len(_CACHE) >= _CACHE_MAX:
+            _CACHE.pop(next(iter(_CACHE)))
+        _CACHE[cle] = (time.monotonic(), items)
+    out = sorted(items, key=lambda it: it["_k"])
+    return [{k: v for k, v in it.items() if k != "_k"} for it in out[:n]]
+
+
+def chercher_images_exa(sujet: str, n: int = 6) -> list[dict]:
+    """Complement : Exa limite a commons.wikimedia.org trouve des fichiers, l'API Commons verifie licence, hote, miniature."""
+    cle = "exa:" + sujet[:80].lower()
+    ent = _CACHE.get(cle)
+    if ent and time.monotonic() - ent[0] < _TTL:
+        items = ent[1]
+    else:
+        key = os.environ.get("EXA_API_KEY", "").strip()
+        if not key:
+            return []
+        r = requests.post("https://api.exa.ai/search", timeout=20,
+                          headers={"x-api-key": key, "Content-Type": "application/json"},
+                          json={"query": sujet[:120], "numResults": 8, "includeDomains": ["commons.wikimedia.org"]})
+        r.raise_for_status()
+        titres = []
+        for x in r.json().get("results", []):
+            m = re.search(r"/wiki/(File:[^?#]+)", x.get("url", ""))
+            if m:
+                titres.append(unquote(m.group(1)).replace("_", " "))
+        print(f"commons: exa {sujet[:40]!r}: {len(titres)} fichier(s)")
+        items = []
+        if titres:
+            rr = _get({"action": "query", "format": "json", "titles": "|".join(titres[:8]),
+                       "prop": "imageinfo", "iiprop": "url|mime|extmetadata", "iiurlwidth": 800,
+                       "iiextmetadatafilter": "LicenseShortName|Artist|ObjectName"})
+            items = _parse(sujet, (rr.json().get("query") or {}).get("pages") or {})
         if len(_CACHE) >= _CACHE_MAX:
             _CACHE.pop(next(iter(_CACHE)))
         _CACHE[cle] = (time.monotonic(), items)

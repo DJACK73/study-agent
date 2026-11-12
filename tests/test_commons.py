@@ -229,3 +229,21 @@ def test_filtre_pertinence_ecarte_hors_sujet():
     bon = {"titre": "Digestive system diagram", "page": "https://commons.wikimedia.org/wiki/File:Digestive_system_diagram_fr.svg"}
     assert chat_routes._pertinents("digestive system human anatomy labeled diagram", [grippe, bon]) == [bon]
     assert chat_routes._pertinents("diagram", [grippe, bon]) == [grippe, bon]
+
+
+def test_exa_vers_commons(monkeypatch):
+    monkeypatch.setenv("EXA_API_KEY", "k")
+    monkeypatch.setattr(commons.requests, "post", lambda *a, **k: _Rep({"results": [
+        {"url": "https://commons.wikimedia.org/wiki/File:A.jpg"}, {"url": "https://example.com/x"}]}))
+    vus = []
+
+    def fake(*a, **k):
+        vus.append(k["params"].get("titles"))
+        return _Rep({"query": {"pages": {"1": _page(1, "CC0")}}})
+    monkeypatch.setattr(commons.requests, "get", fake)
+    res = commons.chercher_images_exa("liver")
+    assert len(res) == 1 and vus == ["File:A.jpg"]
+
+
+def test_exa_sans_cle_ne_fait_rien():
+    assert commons.chercher_images_exa("liver") == []
