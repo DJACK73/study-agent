@@ -173,6 +173,7 @@ def envoyer(cid):
     if conv is None:
         return jsonify({"error": "Introuvable"}), 404
     msg, web, fichier = _lire_requete()
+    stream = bool((request.get_json(silent=True) or {}).get("stream"))
     data = ext = texte_pdf = nom_pdf = None
     if fichier:
         data = fichier.read()
@@ -217,6 +218,8 @@ def envoyer(cid):
         UPLOAD_DIR.mkdir(parents=True, exist_ok=True)
         img_path = UPLOAD_DIR / f"{uuid.uuid4().hex}.{ext}"
         img_path.write_bytes(data)
+    if stream and not img_path:
+        return _flux_chat(cid, conv, msg, texte, sources, web_statut, veut_img)
     try:
         if img_path:
             rep = analyser_image(str(img_path), f"{CHAT_PROMPT}\n\n{texte}")
@@ -236,6 +239,12 @@ def envoyer(cid):
         if isinstance(e, ConnectionError):
             return jsonify({"error": "Gemini injoignable, verifie ta connexion"}), 502
         return jsonify({"error": "Gemini indisponible"}), 502
+    d, code = _finaliser_chat(cid, conv, msg, rep, img_path, texte_pdf, nom_pdf, sources, web_statut, veut_img)
+    return jsonify(d), code
+
+
+def _finaliser_chat(cid, conv, msg, rep, img_path, texte_pdf, nom_pdf, sources, web_statut, veut_img):
+    # sauvegarde la reponse, retire les marqueurs, titre ; renvoie (dict, statut)
     rel = f"uploads/{img_path.name}" if img_path else None
     from sqlite3 import IntegrityError
     try:
@@ -243,7 +252,7 @@ def envoyer(cid):
     except IntegrityError:  # discussion supprimée pendant l'appel Gemini
         if img_path:
             img_path.unlink(missing_ok=True)
-        return jsonify({"error": "Discussion supprimée pendant la réponse"}), 404
+        return {"error": "Discussion supprimée pendant la réponse"}, 404
     rep, marq = _extraire_marqueurs(rep)
     slots = [{"q": q, "apres": a} for q, a in marq[:5]]
     print(f"chat images: {len(marq)} marqueur(s) ecrit(s) par le modele")
@@ -256,8 +265,48 @@ def envoyer(cid):
     if not conv["messages"] and titre == "Nouvelle discussion":
         titre = _titre_conv(msg)
         chat_db.renommer(cid, titre)
-    return jsonify({"reponse": rep, "message_id": mid, "titre": titre, "sources": sources,
-                    "web_statut": web_statut, "image_path": rel, "pdf_path": None, "images": imgs, "slots": slots})
+    return ({"reponse": rep, "message_id": mid, "titre": titre, "sources": sources,
+                    "web_statut": web_statut, "image_path": rel, "pdf_path": None, "images": imgs, "slots": slots}, 200)
+
+
+def _flux_chat(cid, conv, msg, texte, sources, web_statut, veut_img):
+    # flux NDJSON : {"t": morceau} ... puis {"fin": json final} ou {"erreur": texte}
+    import time
+    from flask import Response
+    from modules.gemini_handler import analyser_texte_flux
+
+    def ligne(o):
+        return json.dumps(o, ensure_ascii=False) + "\n"
+
+    def gen():
+        t0, premier, morceaux = time.time(), None, []
+        try:
+            for m in analyser_texte_flux(texte, CHAT_PROMPT, _MODELE_CHAT):
+                if premier is None:
+                    premier = time.time() - t0
+                morceaux.append(m)
+                yield ligne({"t": m})
+        except Exception as e:
+            print(f"chat gemini: {e}")
+            if isinstance(e, TimeoutError):
+                err = "Gemini ne repond pas, reessaie"
+            elif isinstance(e, ConnectionError):
+                err = "Gemini injoignable, verifie ta connexion"
+            else:
+                err = "Gemini indisponible"
+            yield ligne({"erreur": err})
+            return
+        rep = "".join(morceaux)
+        if not rep.strip():
+            print("chat gemini: flux vide")
+            yield ligne({"erreur": "Gemini indisponible"})
+            return
+        print(f"chat gemini: premier morceau {premier:.1f} s, total {time.time() - t0:.1f} s")
+        d, code = _finaliser_chat(cid, conv, msg, rep, None, None, None, sources, web_statut, veut_img)
+        yield ligne({"fin": d} if code == 200 else {"erreur": d["error"]})
+
+    return Response(gen(), mimetype="application/x-ndjson",
+                    headers={"Cache-Control": "no-cache", "X-Accel-Buffering": "no"})
 
 
 _NOM_PDF = re.compile(r"[0-9a-f]{32}\.pdf")

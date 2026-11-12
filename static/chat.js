@@ -249,6 +249,40 @@
     } catch (e) { showToast(e.message, 'error'); }
   }
 
+  async function lireFlux(url, opt, att) {
+    const r = await fetch(url, opt);
+    if ((r.headers.get('Content-Type') || '').indexOf('ndjson') < 0) {
+      let d = null;
+      try { d = await r.json(); } catch (_) {}
+      if (!r.ok) throw new Error((d && d.error) || ('HTTP ' + r.status));
+      return d;
+    }
+    const rd = r.body.getReader(), dec = new TextDecoder();
+    let buf = '', txt = '', fin = null;
+    for (;;) {
+      const x = await rd.read();
+      if (x.done) break;
+      buf += dec.decode(x.value, {stream: true});
+      let k;
+      while ((k = buf.indexOf('\n')) >= 0) {
+        const l = buf.slice(0, k).trim(); buf = buf.slice(k + 1);
+        if (!l) continue;
+        const o = JSON.parse(l);
+        if (o.erreur) throw new Error(o.erreur);
+        if (o.fin) fin = o.fin;
+        if (o.t) {
+          txt += o.t;
+          const c = txt.indexOf('[[');
+          const m = $('msgs'), bas = m.scrollHeight - m.scrollTop - m.clientHeight < 80;
+          att.innerHTML = md((c >= 0 ? txt.slice(0, c) : txt).replace(/\[$/, ''));
+          if (bas) m.scrollTop = m.scrollHeight;
+        }
+      }
+    }
+    if (!fin) throw new Error('Flux interrompu');
+    return fin;
+  }
+
   async function envoyer() {
     const txt = $('inp').value.trim();
     if ((!txt && !fichier) || busy) return;
@@ -274,9 +308,10 @@
         fd.append('message', txt); fd.append('web', $('chk-web').checked ? '1' : '0'); fd.append('fichier', f);
         opt = {method:'POST', body: fd, signal: ctrl.signal};
       } else {
-        opt = {method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify({message: txt, web: $('chk-web').checked}), signal: ctrl.signal};
+        opt = {method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify({message: txt, web: $('chk-web').checked, stream: true}), signal: ctrl.signal};
       }
-      const d = await j(API + '/conversations/' + cid + '/messages', opt);
+      const url = API + '/conversations/' + cid + '/messages';
+      const d = f ? await j(url, opt) : await lireFlux(url, opt, att);
       att.remove();
       const neu = bulle('ai', d.reponse, d.pdf_path, false, null, d.images, d.sources);
       if (d.slots && d.slots.length) chargerImages(neu, d);

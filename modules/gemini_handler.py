@@ -87,6 +87,48 @@ def analyser_texte(texte: str, prompt: str) -> str:
     return _appeler(f"{prompt}\n\n---\n{texte}")
 
 
+def analyser_texte_flux(texte: str, prompt: str, modele=None):
+    # flux de morceaux de texte ; retry 429/503/connexion seulement tant qu'aucun morceau n'est parti
+    contents = f"{prompt}\n\n---\n{texte}"
+    n = len(_DELAIS) + 1
+    derniere = None
+    for i in range(n):
+        if i:
+            time.sleep(_DELAIS[i - 1])
+        client = _CLIENTS[i % len(_CLIENTS)]
+        mod = (modele or MODEL_NAME) if i < n - 1 else MODEL_SMART
+        parti = False
+        try:
+            for ch in client.models.generate_content_stream(model=mod, contents=contents):
+                t = ch.text
+                if t:
+                    parti = True
+                    yield t
+            return
+        except Exception as e:
+            if parti:
+                if isinstance(e, _TIMEOUTS) or "Timeout" in type(e).__name__:
+                    raise TimeoutError("Gemini ne repond pas (delai depasse)") from e
+                raise
+            if isinstance(e, _TIMEOUTS) or "Timeout" in type(e).__name__ or getattr(e, "code", None) == 504:
+                logging.warning("gemini flux delai %d/%d modele=%s cle=%d", i + 1, n, mod, i % len(_CLIENTS) + 1)
+                raise TimeoutError("Gemini ne repond pas (delai depasse)") from e
+            if isinstance(e, _CONNEXIONS):
+                logging.warning("gemini flux connexion impossible %d/%d modele=%s cle=%d", i + 1, n, mod, i % len(_CLIENTS) + 1)
+                if i >= 1:
+                    raise ConnectionError("Gemini injoignable (connexion impossible)") from e
+                derniere = e
+                continue
+            if getattr(e, "code", None) not in _RETRY:
+                logging.warning("gemini flux erreur non retryee type=%s code=%s modele=%s cle=%d",
+                                type(e).__name__, getattr(e, "code", None), mod, i % len(_CLIENTS) + 1)
+                raise
+            derniere = e
+            logging.warning("gemini flux retry %d/%d code=%s modele=%s cle=%d",
+                            i + 1, n, getattr(e, "code", None), mod, i % len(_CLIENTS) + 1)
+    raise derniere
+
+
 def analyser_contenus(contenus: list, config=None) -> str:
     """Texte et images melanges dans un seul appel (retry et cles identiques a analyser_texte)."""
     return _appeler(contenus, config)
