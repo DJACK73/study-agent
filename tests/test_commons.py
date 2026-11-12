@@ -247,3 +247,17 @@ def test_exa_vers_commons(monkeypatch):
 
 def test_exa_sans_cle_ne_fait_rien():
     assert commons.chercher_images_exa("liver") == []
+
+
+def test_rang_langue_et_reduction():
+    import io
+    from PIL import Image
+    from modules import chat_routes
+    fr = {"page": "https://commons.wikimedia.org/wiki/File:Estomac_fr.svg"}
+    en = {"page": "https://commons.wikimedia.org/wiki/File:Stomach.svg"}
+    az = {"page": "https://commons.wikimedia.org/wiki/File:Stomach_az.jpg"}
+    assert sorted([az, en, fr], key=chat_routes._rang_langue) == [fr, en, az]
+    buf = io.BytesIO()
+    Image.new("RGBA", (2000, 1000), (255, 0, 0, 0)).save(buf, "PNG")
+    data, mime = chat_routes._reduire(buf.getvalue())
+    assert mime == "image/jpeg" and max(Image.open(io.BytesIO(data)).size) <= 512

@@ -410,7 +410,7 @@ def _telecharger(url):
     mime = r.headers.get("content-type", "").split(";")[0].strip().lower()
     if mime not in _FORMATS_VISION or len(r.content) > 2_000_000:
         return None
-    return r.content, mime
+    return _reduire(r.content) or (r.content, mime)
 
 
 def _vision_choix(cands, contenu):
@@ -438,7 +438,10 @@ def _vision_choix(cands, contenu):
                                       thinking_config=types.ThinkingConfig(thinking_level="low"))
     tok = MODELE_BASE.set(_MODELE_CHAT)
     try:
+        import time as _tv
+        _t = _tv.monotonic()
         rep = analyser_contenus(contenus, cfg)
+        print(f"chat vision: appel en {_tv.monotonic() - _t:.0f} s, {sum(len(v) for v in vus.values())} image(s)")
     finally:
         MODELE_BASE.reset(tok)
     m = _re.search(r"\[.*\]", rep or "", _re.S)
@@ -479,13 +482,46 @@ def _pertinents(q, items):
     return out
 
 
+_LANGUES = set("az tr es ar zh ja ko ru de it pt nl pl uk bn hi ml ta te th vi id fa he el sv da fi cs hu ro bg sr hr kk mn ln ku".split())
+
+
+def _rang_langue(x):
+    """0 = fichier _fr, 1 = anglais ou sans code de langue, 2 = langue etrangere connue."""
+    m = _re.search(r"[ _-]([a-z]{2,3})\.\w+$", x.get("page", ""), _re.I)
+    code = m.group(1).lower() if m else ""
+    return 0 if code == "fr" else 2 if code in _LANGUES else 1
+
+
+def _reduire(data):
+    """Miniature 512 px en JPEG pour la vision (charge reseau divisee). None si echec."""
+    try:
+        import io
+        from PIL import Image
+        im = Image.open(io.BytesIO(data))
+        im.load()
+        if im.mode in ("RGBA", "LA", "P"):
+            im = im.convert("RGBA")
+            fond = Image.new("RGB", im.size, "white")
+            fond.paste(im, mask=im.split()[-1])
+            im = fond
+        else:
+            im = im.convert("RGB")
+        im.thumbnail((512, 512))
+        out = io.BytesIO()
+        im.save(out, "JPEG", quality=70)
+        return out.getvalue(), "image/jpeg"
+    except Exception as e:
+        print(f"chat vision reduction: {e}")
+        return None
+
+
 def _choisir_images(slots, contenu):
     """Candidats Commons par emplacement, puis le modele regarde et choisit (ou rejette). Repli : 1er candidat.
     Une meme image n'est jamais posee deux fois."""
     from modules.commons import chercher_images
     import time as _t
     t0 = _t.monotonic()
-    n = 4 if len(slots) <= 3 else 3
+    n = 3
     cands, vus = [], set()
     for q, apres in slots:
         if q.lower() in vus:
@@ -500,7 +536,7 @@ def _choisir_images(slots, contenu):
                     c += [x for x in _pertinents(q, chercher_images_exa(q)) if x["page"] not in deja]
                 except Exception as e:
                     print(f"chat images: exa: {e}")
-            c = c[:n]
+            c = sorted(c, key=_rang_langue)[:n]
             if _re.search(r"diagram|labell?ed", q, _re.I):
                 try:
                     fr = [x for x in chercher_images(q + " fr", n=6) if _re.search(r"[ _-]fr\.\w+$", x["page"], _re.I)]
