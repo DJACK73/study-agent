@@ -434,9 +434,9 @@ _PROMPT_VISION = (
     "Tu choisis les images qui illustreront une réponse de cours. Pour chaque EMPLACEMENT, des images candidates numérotées te sont montrées. "
     "Garde celle qui illustre le mieux ce que la réponse explique à cet endroit. "
     "Pour l'anatomie ou un mécanisme, préfère une image dont les noms des parties sont lisibles, en français si possible, sinon en anglais ; "
-    "écarte les noms dans une autre langue, les images floues ou sans rapport. Si aucune ne convient, réponds null pour cet emplacement. "
+    "écarte toute image dont les noms sont dans une autre langue que le français ou l'anglais (espagnol, turc, etc.), même lisibles et même proches du français, ainsi que les images floues ou sans rapport. Des numéros sans noms de parties ne comptent pas comme des noms : écarte une telle image si une autre porte des noms lisibles. Si aucune ne convient, réponds null pour cet emplacement. "
     "Vérifie que l'image montre bien le SUJET de l'emplacement : une image d'un autre sujet (maladie, autre organe, autre animal) = null, même si c'est la seule. "
-    "Réponds uniquement par un tableau JSON, un élément par emplacement : [{\"i\": numéro de l'emplacement, \"choix\": numéro de l'image ou null, \"raison\": une phrase courte en français (langue des noms, lisibilité, pertinence)}]."
+    "Réponds uniquement par un tableau JSON, un élément par emplacement : [{\"i\": numéro de l'emplacement, \"choix\": étiquette exacte de l'image (N.M, par exemple 2.3) ou null, \"raison\": une phrase courte en français (langue des noms, lisibilité, pertinence)}]."
 )
 _FORMATS_VISION = {"image/png", "image/jpeg", "image/webp"}
 
