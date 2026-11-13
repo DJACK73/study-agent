@@ -503,10 +503,12 @@ def _vision_choix(cands, contenu):
     for s in range(len(cands)):
         liste = vus.get(s, [])
         if not liste:
+            print(f"chat vision: emplacement {s + 1}: aucune miniature telechargee, repli sur le 1er candidat sans controle")
             choix.append(0)
             continue
         item = next((x for x in arr if isinstance(x, dict) and x.get("i") == s + 1), None)
         if item is None:
+            print(f"chat vision: emplacement {s + 1}: pas de reponse du modele, repli sur le 1er candidat sans controle")
             choix.append(liste[0][0])
             continue
         n = item.get("choix")
