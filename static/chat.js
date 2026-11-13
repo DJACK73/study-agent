@@ -127,6 +127,11 @@
       a.href = API + '/pdf/' + encodeURIComponent(pdf.split('/').pop());
       a.target = '_blank'; a.textContent = '📄 Ouvrir le PDF';
       d.appendChild(a);
+      const dl = document.createElement('a');
+      dl.className = 'pdf-card'; dl.style.marginLeft = '8px';
+      dl.href = a.href + '?n=' + encodeURIComponent(String(texte || '').split('PDF prêt : ').pop());
+      dl.setAttribute('download', ''); dl.textContent = '↓ Télécharger';
+      d.appendChild(dl);
     }
     if (bas.length) {
       const g = document.createElement('div');

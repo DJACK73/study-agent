@@ -319,11 +319,24 @@ def _flux_chat(cid, conv, msg, texte, sources, web_statut, veut_img):
 _NOM_PDF = re.compile(r"[0-9a-f]{32}\.pdf")
 
 
+def _slug(s):
+    import unicodedata
+    s = unicodedata.normalize("NFKD", str(s or ""))
+    s = "".join(c for c in s if not unicodedata.combining(c)).lower()
+    s = re.sub(r"[^a-z0-9]+", "-", s).strip("-")[:60].strip("-")
+    return s or "etude"
+
+
 @bp.get("/pdf/<nom>")
 def telecharger_pdf(nom):
     if not _NOM_PDF.fullmatch(nom):
         return jsonify({"error": "Introuvable"}), 404
-    return send_from_directory(PDF_DIR, nom, mimetype="application/pdf")
+    from flask import request as _rq
+    n = _rq.args.get("n")
+    if n is None:
+        return send_from_directory(PDF_DIR, nom, mimetype="application/pdf")
+    return send_from_directory(PDF_DIR, nom, mimetype="application/pdf",
+                               as_attachment=True, download_name=_slug(n) + ".pdf")
 
 
 _NOM_IMG = re.compile(r"[0-9a-f]{32}\.(jpg|png|webp)")
@@ -357,12 +370,24 @@ def _reponses_ia(messages):
 
 
 def _titre_pdf(contenu, sujet, titre_conv):
-    """Sujet explicite, sinon premier titre # / ## du contenu, sinon titre de conversation."""
-    if sujet:
-        return sujet[:60]
+    """Premier titre # / ## / ### du contenu, sinon sujet, sinon titre de conversation."""
     m = _TITRE_MD.search(contenu or "")
     t = m.group(1).replace("*", "").replace("`", "").strip() if m else ""
-    return (t or titre_conv)[:60]
+    return (t or sujet or titre_conv)[:60]
+
+
+def _bloc_sources(messages, contenu):
+    """Sources du message IA dont provient le contenu exporte (les [n] sont propres a ce message)."""
+    for m in reversed(messages):
+        if m["role"] != "ai" or m["pdf_path"] or not m["sources_json"] or contenu not in (m["contenu"] or ""):
+            continue
+        try:
+            src = json.loads(m["sources_json"])
+        except ValueError:
+            return ""
+        lignes = [f"- [{i}] {s.get('titre') or s.get('url')} : {s.get('url', '')}" for i, s in enumerate(src, 1)]
+        return "\n\n## Sources\n" + "\n".join(lignes) if lignes else ""
+    return ""
 
 
 def _repondre_pdf(cid, conv, msg, d):
@@ -390,7 +415,7 @@ def _repondre_pdf(cid, conv, msg, d):
             titre_pdf = _titre_pdf(contenu, sujet, conv["titre"])
             PDF_DIR.mkdir(parents=True, exist_ok=True)
             fichier = PDF_DIR / f"{uuid.uuid4().hex}.pdf"
-            fichier.write_bytes(generer_pdf_bytes(contenu, titre_pdf, "moderne"))
+            fichier.write_bytes(generer_pdf_bytes(contenu + _bloc_sources(conv["messages"], contenu), titre_pdf, "moderne"))
             rel, rep = f"pdfs/{fichier.name}", f"{note}PDF prêt : {titre_pdf}"
     except Exception as e:
         print(f"chat pdf: {e}")

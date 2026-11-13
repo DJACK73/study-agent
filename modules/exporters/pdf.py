@@ -103,7 +103,7 @@ def pdf_moderne(contenu: str, titre: str) -> bytes:
                                leftMargin=2.5*_c, rightMargin=2.5*_c,
                                topMargin=2.5*_c, bottomMargin=2.5*_c)
     story  = []
-    story.append(Paragraph(_safe(titre.upper()), ParagraphStyle(
+    story.append(Paragraph(_safe(titre), ParagraphStyle(
         'TM', fontName='Helvetica-Bold', fontSize=20,
         textColor=violet, alignment=TA_CENTER, spaceAfter=8)))
     story.append(HRFlowable(width="100%", thickness=2,

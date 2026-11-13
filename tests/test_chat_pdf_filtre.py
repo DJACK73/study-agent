@@ -26,7 +26,7 @@ def test_titre_repli_conversation():
 
 
 def test_titre_sujet_prioritaire_et_tronque():
-    assert _titre_pdf("# H", "S" * 80, "C") == "S" * 60
+    assert _titre_pdf("# H", "S" * 80, "C") == "H"
 
 
 def test_titre_accepte_h3():
