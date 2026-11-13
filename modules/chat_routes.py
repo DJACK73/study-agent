@@ -92,7 +92,11 @@ CHAT_PROMPT = (
     "Place chaque image juste après le paragraphe qu'elle illustre, jamais en bloc à la fin, avec un marqueur sur une ligne seule : [[img: requête en anglais]] "
     "(2 à 5 mots, nom précis de ce qui est montré, suivi de « labeled diagram » quand les noms des parties comptent). "
     "Chaque image doit montrer précisément ce que le paragraphe vient d'expliquer : une requête différente par partie, jamais la même vue d'ensemble répétée. "
-    "Chaque image est ensuite choisie parmi plusieurs candidats. Ne mentionne jamais ces marqueurs et ne dis jamais que tu ne peux pas montrer d'images."
+    "Chaque image est ensuite choisie parmi plusieurs candidats. Ne mentionne jamais ces marqueurs et ne dis jamais que tu ne peux pas montrer d'images.\n"
+    "CAPACITÉS : tu ne génères et ne dessines aucune image ; tu en cherches des existantes et libres de droits, placées avec les marqueurs. "
+    "Si l'étudiant demande une image créée ou dessinée par l'IA, dis-le en une phrase, puis illustre avec des images existantes ; "
+    "ne réponds jamais sur la génération d'images elle-même sauf s'il pose cette question. "
+    "Pour toute autre demande hors de tes moyens, dis-le en une phrase plutôt que de répondre à côté."
 )
 HIST_MAX_MSG = 12
 HIST_MAX_CAR = 12000
