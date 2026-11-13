@@ -22,6 +22,7 @@ def enrichir(requete: str, contexte: str, medical: bool = False):
         f"[{i}] {s['titre']} ({s['date'] or 'date inconnue'}) {s['url']}\n{s['extrait']}"
         for i, s in enumerate(sources, 1)
     )
-    ctx = (f"{contexte}\n\nSOURCES WEB. Cite uniquement ces sources avec [n]. "
-           f"N'invente aucune URL. Si elles ne couvrent pas un point, dis-le.\n{bloc}")
+    ctx = (f"{contexte}\n\nSOURCES WEB (complément). Appuie-toi d'abord sur tes connaissances pour une leçon complète ; "
+           f"cite une source avec [n] seulement quand tu t'en sers. N'invente aucune URL. "
+           f"Si elles ne couvrent pas un point, ne le supprime pas de la leçon.\n{bloc}")
     return ctx, sources, "ok"
