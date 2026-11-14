@@ -136,12 +136,16 @@ def chercher_images_exa(sujet: str, n: int = 6) -> list[dict]:
     if ent and time.monotonic() - ent[0] < _TTL:
         items = ent[1]
     else:
-        key = os.environ.get("EXA_API_KEY", "").strip()
-        if not key:
+        cles = [k.strip() for k in (os.environ.get("EXA_API_KEYS") or os.environ.get("EXA_API_KEY") or "").split(",") if k.strip()]
+        if not cles:
             return []
-        r = requests.post("https://api.exa.ai/search", timeout=20,
-                          headers={"x-api-key": key, "Content-Type": "application/json"},
-                          json={"query": sujet[:120], "numResults": 8, "includeDomains": ["commons.wikimedia.org"]})
+        r = None
+        for key in cles:  # rotation : on passe a la cle suivante sur quota (402/403/429)
+            r = requests.post("https://api.exa.ai/search", timeout=20,
+                              headers={"x-api-key": key, "Content-Type": "application/json"},
+                              json={"query": sujet[:120], "numResults": 8, "includeDomains": ["commons.wikimedia.org"]})
+            if getattr(r, "status_code", 200) not in (402, 403, 429):
+                break
         r.raise_for_status()
         titres = []
         for x in r.json().get("results", []):

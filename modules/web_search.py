@@ -20,13 +20,6 @@ def _exa(cle: str, q: str, n: int, domaines: list[str] | None) -> requests.Respo
     return requests.post("https://api.exa.ai/search", headers={"x-api-key": cle}, json=corps, timeout=_TIMEOUT)
 
 
-def _tavily(cle: str, q: str, n: int, domaines: list[str] | None) -> requests.Response:
-    corps = {"query": q, "max_results": n, "search_depth": "basic"}
-    if domaines:
-        corps["include_domains"] = domaines
-    return requests.post("https://api.tavily.com/search", headers={"Authorization": f"Bearer {cle}"}, json=corps, timeout=_TIMEOUT)
-
-
 def _norme(nom: str, data: dict) -> list[dict]:
     if nom == "exa":
         return [{"titre": x.get("title", ""), "url": x["url"], "extrait": x.get("text", ""),
@@ -37,7 +30,6 @@ def _norme(nom: str, data: dict) -> list[dict]:
 
 _FOURNISSEURS = {
     "exa": (_exa, lambda: config.EXA_API_KEYS),
-    "tavily": (_tavily, lambda: config.TAVILY_API_KEYS),
 }
 _pools: dict[str, KeyPool] = {}
 

@@ -342,6 +342,12 @@ def telecharger_pdf(nom):
 _NOM_IMG = re.compile(r"[0-9a-f]{32}\.(jpg|png|webp)")
 
 
+@bp.post("/cache/vider")
+def vider_cache_route():
+    from modules.images_sources import vider_caches
+    return jsonify({"vide": vider_caches()})
+
+
 @bp.get("/img/<nom>")
 def lire_image(nom):
     if not _NOM_IMG.fullmatch(nom):

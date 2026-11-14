@@ -6,7 +6,6 @@ def _list(name: str) -> list[str]:
 
 
 GEMINI_API_KEYS = _list("GEMINI_API_KEYS") or _list("GEMINI_API_KEY")
-TAVILY_API_KEYS = _list("TAVILY_API_KEYS") or _list("TAVILY_API_KEY")
 
 GEMINI_API_KEY = GEMINI_API_KEYS[0] if GEMINI_API_KEYS else ""  # compat ancien code
 
@@ -21,4 +20,6 @@ DB_PATH = "data/sessions.db"
 PORT = int(os.environ.get("PORT", "8081"))
 
 EXA_API_KEYS = _list("EXA_API_KEYS") or _list("EXA_API_KEY")
+PIXABAY_API_KEYS = _list("PIXABAY_API_KEYS") or _list("PIXABAY_API_KEY")
+SERPER_API_KEYS = _list("SERPER_API_KEYS") or _list("SERPER_API_KEY")
 SEARCH_PROVIDERS = _list("SEARCH_PROVIDERS") or ["exa"]
