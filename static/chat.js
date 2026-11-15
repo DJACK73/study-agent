@@ -68,7 +68,7 @@
     const o = document.createElement('div');
     o.style.cssText = 'position:fixed;inset:0;z-index:1000;background:rgba(0,0,0,.85);display:flex;align-items:center;justify-content:center;padding:16px;cursor:zoom-out';
     const im = document.createElement('img');
-    im.src = x.url; im.alt = x.titre || '';
+    im.referrerPolicy = 'no-referrer'; im.onerror = () => { if (x.vignette && im.src !== x.vignette) { im.onerror = null; im.src = x.vignette; } }; im.src = x.url; im.alt = x.titre || '';
     im.style.cssText = 'max-width:96vw;max-height:94vh;background:#fff;border-radius:8px';
     const cle = (e) => { if (e.key === 'Escape') fermer(); };
     const fermer = () => { o.remove(); document.removeEventListener('keydown', cle); };
@@ -80,7 +80,7 @@
     const f = document.createElement('figure');
     f.style.cssText = 'margin:12px 0;max-width:520px';
     const im = document.createElement('img');
-    im.src = x.url; im.alt = x.titre || ''; im.loading = 'lazy';
+    im.referrerPolicy = 'no-referrer'; im.onerror = () => { if (x.vignette && im.src !== x.vignette) { im.onerror = null; im.src = x.vignette; } }; im.src = x.url; im.alt = x.titre || ''; im.loading = 'lazy';
     im.style.cssText = 'display:block;width:100%;border-radius:8px;background:#fff;cursor:zoom-in';
     im.onclick = () => agrandir(x);
     const cap = document.createElement('figcaption');
@@ -140,7 +140,7 @@
         const f = document.createElement('figure');
         f.style.cssText = 'margin:0;max-width:240px';
         const im = document.createElement('img');
-        im.src = x.url; im.alt = x.titre || ''; im.loading = 'lazy';
+        im.referrerPolicy = 'no-referrer'; im.onerror = () => { if (x.vignette && im.src !== x.vignette) { im.onerror = null; im.src = x.vignette; } }; im.src = x.url; im.alt = x.titre || ''; im.loading = 'lazy';
         im.style.cssText = 'display:block;width:100%;border-radius:8px;background:#fff';
         const cap = document.createElement('figcaption');
         cap.style.cssText = 'font-size:12px;color:var(--text3);margin-top:4px';

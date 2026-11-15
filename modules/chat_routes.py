@@ -505,11 +505,11 @@ def _vision_choix(cands, contenu):
     from concurrent.futures import ThreadPoolExecutor
     from google.genai import types
     from modules.gemini_handler import MODELE_BASE, analyser_contenus
-    taches = [(s, k, c["url"]) for s, (_, _, cs) in enumerate(cands) for k, c in enumerate(cs)]
+    taches = [(s, k, c["url"], c.get("vignette") or "") for s, (_, _, cs) in enumerate(cands) for k, c in enumerate(cs)]
     with ThreadPoolExecutor(max_workers=2) as ex:
-        res = list(ex.map(lambda t: _telecharger(t[2]), taches))
+        res = list(ex.map(lambda t: _telecharger(t[2]) or (_telecharger(t[3]) if t[3] else None), taches))
     vus = {}
-    for (s, k, _), r in zip(taches, res):
+    for (s, k, _u, _v), r in zip(taches, res):
         if r:
             vus.setdefault(s, []).append((k, r[0], r[1]))
     if not vus:
@@ -607,6 +607,25 @@ def _reduire(data):
         return None
 
 
+def _copier_pixabay(x):
+    """Pixabay interdit le hotlink : l'image retenue est copiee dans data/uploads et servie par /img/. None si echec."""
+    import requests
+    try:
+        r = requests.get(x["url"], headers={"User-Agent": _ua_commons()}, timeout=15)
+        r.raise_for_status()
+    except Exception as e:
+        print(f"chat images: copie pixabay: {e}")
+        return None
+    ext = {"image/jpeg": "jpg", "image/png": "png", "image/webp": "webp"}.get(
+        r.headers.get("content-type", "").split(";")[0].strip().lower())
+    if not ext or len(r.content) > 3_000_000:
+        return None
+    UPLOAD_DIR.mkdir(parents=True, exist_ok=True)
+    nom = f"{uuid.uuid4().hex}.{ext}"
+    (UPLOAD_DIR / nom).write_bytes(r.content)
+    return {**x, "url": f"/api/chat/img/{nom}"}
+
+
 def _choisir_images(slots, contenu):
     """Candidats Commons par emplacement, puis le modele regarde et choisit (ou rejette). Repli : 1er candidat.
     Une meme image n'est jamais posee deux fois."""
@@ -628,6 +647,13 @@ def _choisir_images(slots, contenu):
                     c += [x for x in _pertinents(q, chercher_images_exa(q)) if x["page"] not in deja]
                 except Exception as e:
                     print(f"chat images: exa: {e}")
+            if len(c) < n:
+                try:
+                    from modules.images_sources import complements
+                    compl = _pertinents(q, complements(q, {x["page"] for x in c}, n))
+                    c += compl[: n - len(c)]
+                except Exception as e:
+                    print(f"chat images: complements: {e}")
             c = sorted(c, key=_rang_langue)[:n]
             if _re.search(r"diagram|labell?ed", q, _re.I):
                 try:
@@ -664,6 +690,10 @@ def _choisir_images(slots, contenu):
             continue
         pris.add(x["page"])
         print(f"chat images: emplacement {i + 1}: retenue {x['page'].rsplit('/', 1)[-1][:60]} (candidat {k + 1})")
+        if x.get("source") == "pixabay":
+            x = _copier_pixabay(x)
+            if x is None:
+                continue
         out.append({**x, "apres": apres})
     print(f"chat images: {len(out)} retenue(s) sur {len(cands)} emplacement(s) en {_t.monotonic() - t0:.0f} s")
     return out
