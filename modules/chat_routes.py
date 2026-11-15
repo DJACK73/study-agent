@@ -677,6 +677,29 @@ def _choisir_images(slots, contenu):
     except Exception as e:
         print(f"chat vision: {e}")
         choix = None
+    if choix is not None:
+        choix = list(choix)
+        vides = [i for i, k in enumerate(choix) if k is None]
+        if vides:
+            try:
+                from modules.images_sources import complements
+                c2, i2 = [], []
+                for i in vides:
+                    apres, q, c = cands[i]
+                    deja = {x["page"] for x in c}
+                    nouv = [x for x in _pertinents(q, complements(q, deja, n)) if x["page"] not in deja][:n]
+                    if nouv:
+                        c2.append((apres, q, nouv))
+                        i2.append(i)
+                print(f"chat images: secours web: {len(vides)} emplacement(s) rejete(s), {len(c2)} avec candidats")
+                if c2:
+                    choix2 = _vision_choix(c2, contenu)
+                    for j, i in enumerate(i2):
+                        if choix2[j] is not None:
+                            cands[i], choix[i] = c2[j], choix2[j]
+                            print(f"chat images: secours web: emplacement {i + 1} repris")
+            except Exception as e:
+                print(f"chat images: secours web: {e}")
     out, pris = [], set()
     for i, (apres, q, c) in enumerate(cands):
         k = 0 if choix is None else choix[i]
