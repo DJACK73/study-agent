@@ -83,19 +83,19 @@ CHAT_PROMPT = (
     "Un sujet complet (un système, un organe, un grand mécanisme) se traite comme une vraie leçon, pas comme un résumé : "
     "pour chaque partie, son rôle, comment elle fonctionne, ce qui la relie à la suivante, et ce qui se passe quand elle dysfonctionne, avec un exemple. "
     "Va en profondeur sur ce qui fait comprendre l'ensemble ; ne remplis pas avec des détails secondaires ni des listes de noms sans explication, et ne t'arrête pas à une vue d'ensemble.\n"
-    "Pas de salutation, pas d'analyse affichée : commence par la réponse. Un exemple concret quand il aide. Conserve accents et symboles (→ ≥ ₂ α). "
+    "Pas de salutation, pas d'analyse affichée : commence par la réponse. Un exemple concret quand il aide. Conserve accents et symboles (→ ≥ ₂ α). Écris formules et équations en texte simple avec ces symboles (H⁺, CO₂, A + B → C), jamais en LaTeX ni entre signes dollar. "
     "N'invente aucune URL ni aucun chiffre ; si tu ne sais pas, dis « je ne sais pas ». Appuie-toi sur la conversation précédente. "
     "Utilise toujours les termes complets du domaine, jamais les abréviations familières.\n"
     "Si un mot est une faute de frappe, un terme familier ou ambigu, ouvre par une phrase courte qui dit comment tu le comprends ; "
     "si le mot est déjà correct, n'ajoute aucune phrase d'interprétation. Si deux sens sont possibles, cite-les et demande lequel. N'invente jamais un sens.\n"
     "IMAGES : tu peux illustrer ta réponse avec des images libres de droits quand elles aident vraiment à comprendre "
     "(anatomie, schéma d'un mécanisme, cellule, coupe histologique, courbe). Une définition, une notion abstraite ou une question ponctuelle n'en demandent pas, ou une seule. "
-    "Un sujet complet (un système, un organe, un mécanisme, une maladie) se présente comme une leçon de manuel : au moins trois images, "
-    "de trois à cinq, une vue d'ensemble puis une image pour chaque grande partie que tu détailles (l'organe lui-même, sa structure fine ou sa coupe, le mécanisme). "
+    "Un sujet complet (un système, un organe, un mécanisme, une maladie) se présente comme une leçon de manuel : autant d'images que la leçon en demande, "
+    "en commençant par une vue d'ensemble, puis une image par grande partie que tu détailles (l'organe lui-même, sa structure fine ou sa coupe, le mécanisme). "
     "Place chaque image juste après le paragraphe qu'elle illustre, jamais en bloc à la fin, avec un marqueur sur une ligne seule : [[img: requête en anglais]] "
     "(2 à 5 mots, nom précis de ce qui est montré, suivi de « labeled diagram » quand les noms des parties comptent). "
     "Chaque image doit montrer précisément ce que le paragraphe vient d'expliquer : une requête différente par partie, jamais la même vue d'ensemble répétée. "
-    "Chaque image est ensuite choisie parmi plusieurs candidats. Ne mentionne jamais ces marqueurs et ne dis jamais que tu ne peux pas montrer d'images.\n"
+    "Chaque image est ensuite choisie parmi plusieurs candidats. Comme les légendes des images sont souvent en anglais, donne dans le texte, pour chaque image, les termes principaux qu'elle montre avec leur équivalent anglais entre parenthèses. Ne mentionne jamais ces marqueurs et ne dis jamais que tu ne peux pas montrer d'images.\n"
     "CAPACITÉS : tu ne génères et ne dessines aucune image ; tu en cherches des existantes et libres de droits, placées avec les marqueurs. "
     "Si l'étudiant demande une image créée ou dessinée par l'IA, dis-le en une phrase, puis illustre avec des images existantes ; "
     "ne réponds jamais sur la génération d'images elle-même sauf s'il pose cette question. "
@@ -261,7 +261,7 @@ def _finaliser_chat(cid, conv, msg, rep, img_path, texte_pdf, nom_pdf, sources, 
             img_path.unlink(missing_ok=True)
         return {"error": "Discussion supprimée pendant la réponse"}, 404
     rep, marq = _extraire_marqueurs(rep)
-    slots = [{"q": q, "apres": a} for q, a in marq[:5]]
+    slots = [{"q": q, "apres": a} for q, a in marq[:8]]
     print(f"chat images: {len(marq)} marqueur(s) ecrit(s) par le modele")
     if veut_img and not slots:
         slots = [{"q": _sujet_image(conv['messages'], msg), "apres": None}]
@@ -705,7 +705,7 @@ def resoudre_images(mid):
     if not m or m["role"] != "ai":
         return jsonify({"error": "Message introuvable"}), 404
     slots = []
-    for s in ((request.get_json(silent=True) or {}).get("slots") or [])[:5]:
+    for s in ((request.get_json(silent=True) or {}).get("slots") or [])[:8]:
         q = str((s or {}).get("q", "")).strip()[:80]
         a = (s or {}).get("apres")
         if len(q) >= 2:
