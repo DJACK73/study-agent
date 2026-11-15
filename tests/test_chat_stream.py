@@ -23,7 +23,7 @@ def _flux(ctx, cid, msg="Définis le paludisme"):
 def test_marqueur_coupe_entre_deux_morceaux(ctx, monkeypatch):
     from modules import chat_db
     monkeypatch.setattr("modules.gemini_handler.analyser_texte_flux",
-                        lambda t, p, m=None: iter(["Intro.\n\n[[im", "g: stomach diagram]]\n\nSuite."]))
+                        lambda t, p, m=None, thinking=None: iter(["Intro.\n\n[[im", "g: stomach diagram]]\n\nSuite."]))
     cid = chat_db.creer()
     lignes = _flux(ctx, cid)
     fin = lignes[-1]["fin"]
@@ -36,7 +36,7 @@ def test_marqueur_coupe_entre_deux_morceaux(ctx, monkeypatch):
 def test_erreur_avant_premier_morceau(ctx, monkeypatch):
     from modules import chat_db
 
-    def boom(t, p, m=None):
+    def boom(t, p, m=None, thinking=None):
         raise TimeoutError("x")
         yield
 
@@ -49,7 +49,7 @@ def test_erreur_avant_premier_morceau(ctx, monkeypatch):
 
 def test_flux_vide(ctx, monkeypatch):
     from modules import chat_db
-    monkeypatch.setattr("modules.gemini_handler.analyser_texte_flux", lambda t, p, m=None: iter([]))
+    monkeypatch.setattr("modules.gemini_handler.analyser_texte_flux", lambda t, p, m=None, thinking=None: iter([]))
     cid = chat_db.creer()
     assert "erreur" in _flux(ctx, cid)[-1]
     assert chat_db.lire(cid)["messages"] == []

@@ -288,7 +288,7 @@ def _flux_chat(cid, conv, msg, texte, sources, web_statut, veut_img):
     def gen():
         t0, premier, morceaux = time.time(), None, []
         try:
-            for m in analyser_texte_flux(texte, CHAT_PROMPT, _MODELE_CHAT):
+            for m in analyser_texte_flux(texte, CHAT_PROMPT, _MODELE_CHAT, thinking="low"):
                 if premier is None:
                     premier = time.time() - t0
                 morceaux.append(m)

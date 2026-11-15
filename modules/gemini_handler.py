@@ -87,7 +87,8 @@ def analyser_texte(texte: str, prompt: str) -> str:
     return _appeler(f"{prompt}\n\n---\n{texte}")
 
 
-def analyser_texte_flux(texte: str, prompt: str, modele=None):
+def analyser_texte_flux(texte: str, prompt: str, modele=None, thinking=None):
+    kw = {"config": types.GenerateContentConfig(thinking_config=types.ThinkingConfig(thinking_level=thinking))} if thinking else {}
     # flux de morceaux de texte ; retry 429/503/connexion seulement tant qu'aucun morceau n'est parti
     contents = f"{prompt}\n\n---\n{texte}"
     n = len(_DELAIS) + 1
@@ -99,7 +100,7 @@ def analyser_texte_flux(texte: str, prompt: str, modele=None):
         mod = (modele or MODEL_NAME) if i < n - 1 else MODEL_SMART
         parti = False
         try:
-            for ch in client.models.generate_content_stream(model=mod, contents=contents):
+            for ch in client.models.generate_content_stream(model=mod, contents=contents, **kw):
                 t = ch.text
                 if t:
                     parti = True
